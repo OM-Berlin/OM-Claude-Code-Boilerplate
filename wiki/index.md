@@ -4,7 +4,7 @@ okf_version: "0.1"
 
 # Projekt-Wiki — OKF-Wissens-Bundle
 
-Destilliertes Projektwissen als [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)-Bundle (v0.1), von Claude gepflegt — Suche: `python3 wiki/okf-cli.py find "<query>"` · Graph: `python3 wiki/okf-viz.py` · Pflege-Regeln: Skill `om-okf` · Historie: [log.md](log.md).
+Destilliertes Projektwissen als [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)-Bundle (v0.1), von Claude gepflegt — Suche: `python3 wiki/okf-cli.py find "<query>"` · Graph: `python3 wiki/okf-viz.py` · Historie: [log.md](log.md).
 
 ## Katalog
 

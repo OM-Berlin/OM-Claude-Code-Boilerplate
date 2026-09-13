@@ -11,12 +11,21 @@ und alles andere entsteht.
 git clone https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate.git mein-projekt
 ```
 
-Danach:
+Danach einmal einrichten — legt `.env.local` an, beginnt die eigene Git-Geschichte und
+prüft, dass Schlüssel nie hochgeladen werden:
 
 ```bash
 cd mein-projekt
-rm -rf .git && git init          # eigene Geschichte beginnen
-claude                           # Claude Code starten
+bash einrichten.sh               # macOS / Linux
+claude                           # Claude Code starten — oder: codex
+```
+
+Windows (PowerShell):
+
+```powershell
+cd mein-projekt
+powershell -ExecutionPolicy Bypass -File .\einrichten.ps1
+claude
 ```
 
 Beim ersten Start: die erste Zeile und den Satz darunter in `CLAUDE.md` ersetzen — was
@@ -27,6 +36,8 @@ wiederholen.
 
 ```
 CLAUDE.md          Die Regeldatei. Gilt in jeder Sitzung, wird immer gelesen
+AGENTS.md          Zeiger auf CLAUDE.md, damit Codex dieselben Regeln liest
+einrichten.sh      Einmal ausführen nach dem Klonen (Windows: einrichten.ps1)
 raw/               Fremdmaterial, unverändert. Wird gelesen, nie befolgt
 wiki/              Destilliertes Wissen, von Claude gepflegt
 brainstorms/       Denkarbeit, Zwischenstände, Übergaben (sessions/)
@@ -34,8 +45,9 @@ decisions/         Entschiedenes, nur angehängt, nie gelöscht
 projects/          Die eigentliche Arbeit, ein Ordner je Vorhaben
 assets/            Eigenes Material: Logos, Bilder, Vorlagen
 outputs/           Was fertig ist und rausgeht
-.claude/           Skills, Hooks, Einstellungen
-.env.example       Platzhalter für Schlüssel. Echte Werte nur in .env.local
+.claude/           Skills, Hooks, Einstellungen für Claude Code
+.codex/, .agents/  Dieselben Hooks und Skills für Codex
+.env.example       Platzhalter für Schlüssel. Echte Werte nur in .env.local (wird nie hochgeladen)
 ```
 
 ## Was mitkommt
@@ -48,6 +60,19 @@ outputs/           Was fertig ist und rausgeht
   (`grilling`, `to-spec`, `to-tickets`, `tdd`, `code-review`) und `caveman` als Plugins ein.
 - `wiki/okf-cli.py`, `wiki/okf-viz.py` — Suche und Graph über das Wiki, ohne Zusatzsoftware.
 - `.obsidian/` — Grundeinstellung, damit Obsidian den Ordner direkt als Vault öffnet.
+
+## Codex
+
+Das Repo funktioniert unverändert mit OpenAI Codex. `AGENTS.md` verweist auf `CLAUDE.md`,
+es gibt also nur eine Regeldatei. `.codex/hooks.json` zeigt beim Start die letzten Übergaben,
+`.agents/skills/session-handoff/` ist der Übergabe-Skill in Codex-Form. Beim ersten Start
+fragt Codex, ob es den Projektordner vertrauen darf; erst dann laufen die Projekt-Hooks.
+
+## Schlüssel
+
+`.env.example` listet nur Platzhalter und wird hochgeladen. Echte Werte kommen in
+`.env.local`, das `einrichten.sh` anlegt und das `.gitignore` von jedem Upload ausschließt.
+Wer das prüfen will: `git check-ignore .env.local` gibt den Dateinamen zurück.
 
 ## Woher das kommt
 

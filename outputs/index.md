@@ -8,7 +8,7 @@ Endprodukte des Projekts: Dokumente, Decks, Reports, Exporte — alles, was an K
 - Jedes Deliverable hier im Katalog listen (Link + Einzeiler + Datum).
 - Überholte Deliverables nicht löschen, sondern unten als „ersetzt durch …" markieren.
 
-> Hinweis: `outputs/` ist eine OM-Erweiterung des Karpathy-Patterns (raw → wiki → Schema) — für Agentur-Arbeit braucht es eine Deliverables-Schicht.
+> Hinweis: `outputs/` ist eine Erweiterung des Karpathy-Musters (raw → wiki → Schema) — für Agentur-Arbeit braucht es eine Deliverables-Schicht.
 
 ## Katalog
 
