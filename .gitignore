@@ -1,0 +1,240 @@
+# =========================================================================
+# .gitignore — universell, security-first: Secrets bleiben lokal
+# Quellen: github/gitignore, create-next-app, Astro, Laravel, GitGuardian,
+# code.claude.com/docs (Stand 2026-06)
+# =========================================================================
+
+# =========================================================================
+# 1) SECURITY / SECRETS — höchste Priorität, niemals committen
+# =========================================================================
+# Env-Files: alle ignorieren, nur Beispiel-Templates erlauben
+.env
+.env.*
+*.env
+!.env.example
+!.env.*.example
+
+# Private Keys / Zertifikate
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.keystore
+*.jks
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.asc
+*.gpg
+
+# Cloud / Service Credentials
+credentials.json
+service-account*.json
+*-service-account.json
+gcp-*.json
+client_secret*.json
+secrets.json
+secrets.*.yaml
+secrets.*.yml
+secrets
+.secrets
+.aws/
+
+# Package-Registry-Tokens
+.npmrc
+auth.json
+.netrc
+
+# Infrastructure-as-Code State (enthält Klartext-Secrets)
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+# .terraform.lock.hcl bewusst NICHT ignoriert (reproduzierbare Plans)
+
+# =========================================================================
+# 2) AI / AGENT TOOLING
+# =========================================================================
+# Claude Code: Lokales/Persönliches ignorieren — settings.json, CLAUDE.md,
+# .claude/skills|commands|agents werden GETRACKT (Team-Config)
+.claude/settings.local.json
+.claude/*.local.json
+.claude/.credentials.json
+CLAUDE.local.md
+# Codex: AGENTS.md, .agents/skills und .codex/hooks werden GETRACKT.
+.codex/*.local.toml
+.codex/*.local.json
+.codex/log/
+.codex/tmp/
+Codex.local.md
+# .mcp.json ist committbar, solange NUR ${VAR}-Referenzen drinstehen.
+# Klartext-Keys gehören in die lokale Variante:
+.mcp.local.json
+# skills.sh-CLI-Artefakte (entstehen bei projektlokalem Install ohne -g);
+# Codex-Repo-Skills unter .agents/skills bleiben bewusst committbar.
+.agents/*
+!.agents/skills/
+!.agents/skills/**
+.agents/.skill-lock.json
+.agents/plugins/
+skills-lock.json
+# Andere AI-Tools
+.cursor/
+.aider*
+.continue/
+.windsurf/
+.codeium/
+
+# =========================================================================
+# 3) BOILERPLATE-WISSENSSTRUKTUR
+# =========================================================================
+# raw/ = unstrukturierte Research-Dumps (untrusted, nicht fürs Repo)
+raw/*
+!raw/index.md
+# Opt-in-Schutzräume für vertrauliche Inhalte in getrackten Ordnern
+brainstorms/private/
+brainstorms/sessions/private/
+outputs/confidential/
+
+# =========================================================================
+# 4) OS
+# =========================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+__MACOSX/
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =========================================================================
+# 5) IDE / EDITOR
+# =========================================================================
+# JetBrains
+.idea/
+*.iml
+*.iws
+# VS Code: Team-Files per Whitelist tracken
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+.history/
+# Obsidian: volatilen State ignorieren, kuratierte Basis-Config tracken
+.obsidian/*
+!.obsidian/app.json
+!.obsidian/appearance.json
+!.obsidian/core-plugins.json
+!.obsidian/community-plugins.json
+
+# =========================================================================
+# 6) NODE / NEXT.JS / ASTRO
+# =========================================================================
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+coverage/
+*.lcov
+.npm
+.eslintcache
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+# Next.js
+.next/
+out/
+build/
+next-env.d.ts
+.vercel
+# Astro
+dist/
+.astro/
+
+# =========================================================================
+# 7) PHP / LARAVEL
+# =========================================================================
+vendor/
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+.phpunit.result.cache
+.phpunit.cache
+Homestead.yaml
+Homestead.json
+/.vagrant
+_ide_helper.php
+_ide_helper_models.php
+.php-cs-fixer.cache
+
+# =========================================================================
+# 8) PYTHON / uv
+# =========================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.ipynb_checkpoints/
+# uv.lock + .python-version bewusst NICHT ignoriert (reproduzierbare Builds)
+
+# =========================================================================
+# 9) LOGS / CACHES / TEMP
+# =========================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.pid
+*.seed
+*.bak
+*.tmp
+*.swp
+tmp/
+temp/
+
+# =========================================================================
+# NICHT ignorieren (bewusst getrackt):
+# Lock-Files (package-lock.json, pnpm-lock.yaml, composer.lock, uv.lock),
+# .env.example, .mcp.json (nur ${VAR}-Referenzen!), CLAUDE.md,
+# .claude/settings.json, .claude/skills/, .vscode-Whitelist (s. o.)
+# =========================================================================
