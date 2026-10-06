@@ -57,7 +57,9 @@ outputs/           Was fertig ist und rausgeht
 - `.claude/hooks/handoff-offer-guard.sh` — sorgt dafür, dass Claude nur einmal fragt,
   ob eine Übergabe geladen werden soll.
 - `.claude/settings.json` — hängt die Hooks ein und schaltet die Skills von Matt Pocock
-  (`grilling`, `to-spec`, `to-tickets`, `tdd`, `code-review`) und `caveman` als Plugins ein.
+  (`grilling`, `to-spec`, `to-tickets`, `tdd`, `code-review`, `implement-spec`, `pr`, `retro`) und `caveman` als Plugins ein.
+  Die Skills von Matt Pocock kommen aus seinem eigenen Marketplace (`mattpocock/skills`), weil der
+  offizielle Marketplace noch eine ältere Version ausliefert.
 - `wiki/okf-cli.py`, `wiki/okf-viz.py` — Suche und Graph über das Wiki, ohne Zusatzsoftware.
 - `.obsidian/` — Grundeinstellung, damit Obsidian den Ordner direkt als Vault öffnet.
 

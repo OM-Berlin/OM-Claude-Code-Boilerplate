@@ -1,5 +1,11 @@
 {
   "extraKnownMarketplaces": {
+    "mattpocock": {
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills"
+      }
+    },
     "caveman": {
       "source": {
         "source": "github",
@@ -8,7 +14,7 @@
     }
   },
   "enabledPlugins": {
-    "mattpocock-skills@claude-plugins-official": true,
+    "mattpocock-skills@mattpocock": true,
     "claude-md-management@claude-plugins-official": true,
     "caveman@caveman": true
   },
