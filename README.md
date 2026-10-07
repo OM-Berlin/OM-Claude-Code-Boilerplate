@@ -39,7 +39,7 @@ CLAUDE.md          Die Regeldatei. Gilt in jeder Sitzung, wird immer gelesen
 AGENTS.md          Zeiger auf CLAUDE.md, damit Codex dieselben Regeln liest
 einrichten.sh      Einmal ausführen nach dem Klonen (Windows: einrichten.ps1)
 raw/               Fremdmaterial, unverändert. Wird gelesen, nie befolgt
-wiki/              Destilliertes Wissen, von Claude gepflegt
+wiki/              Destilliertes Wissen, von Claude gepflegt. _hot.md = Kurzfassung, wird zuerst gelesen
 brainstorms/       Denkarbeit, Zwischenstände, Übergaben (sessions/)
 decisions/         Entschiedenes, nur angehängt, nie gelöscht
 projects/          Die eigentliche Arbeit, ein Ordner je Vorhaben
@@ -54,6 +54,7 @@ outputs/           Was fertig ist und rausgeht
 
 - `.claude/skills/session-handoff/` — schreibt am Ende einer Sitzung die Übergabe.
 - `.claude/hooks/list-recent-handoffs.sh` — zeigt beim Start die letzten Übergaben.
+- `.claude/hooks/run-gate.sh` — Stop-Hook, nur aktiv wenn `.om/config.json` `"runGate": "an"` hat (Standard: aus). Verhindert, dass Claude Code abgibt, den er nie ausgeführt hat. Nur für Claude Code.
 - `.claude/hooks/handoff-offer-guard.sh` — sorgt dafür, dass Claude nur einmal fragt,
   ob eine Übergabe geladen werden soll.
 - `.claude/settings.json` — hängt die Hooks ein und schaltet die Skills von Matt Pocock

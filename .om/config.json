@@ -1,0 +1,4 @@
+{
+  "_doc": "Schalter dieses Projekts. runGate: 'an' = Claude darf Code-Antworten nicht beenden, ohne den Code ausgeführt zu haben (Stop-Hook .claude/hooks/run-gate.sh). Standard: aus.",
+  "runGate": "aus"
+}

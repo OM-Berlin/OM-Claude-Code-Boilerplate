@@ -8,4 +8,6 @@ Destilliertes Projektwissen als [Open Knowledge Format](https://github.com/Googl
 
 ## Katalog
 
+* [_hot.md](_hot.md) - Hot Page: Kurzfassung unter 500 Wörtern, zuerst lesen
+
 <!-- noch leer — jede neue Page hier eintragen: `* [Titel](datei.md) - description aus dem Frontmatter` · Unterordner als `* [ordner/](ordner/index.md) - Beschreibung` -->
