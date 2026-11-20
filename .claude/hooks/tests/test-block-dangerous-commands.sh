@@ -97,9 +97,49 @@ allowed 'grep -rn TODO projects'
 run Read file_path "/home/anna/projekt/.env.local"; [ $? = 2 ] && ok || bad "Read .env.local muss gesperrt sein"
 run Read file_path "/home/anna/projekt/.env"; [ $? = 2 ] && ok || bad "Read .env muss gesperrt sein"
 run Read file_path "/home/anna/projekt/.env.example"; [ $? = 0 ] && ok || bad "Read .env.example muss erlaubt sein"
+run Read file_path 'C:\Users\max\proj\.env.local'; [ $? = 2 ] && ok || bad "Read mit Windows-Pfad auf .env.local muss gesperrt sein"
+run Read file_path 'C:\Users\max\proj\.env'; [ $? = 2 ] && ok || bad "Read mit Windows-Pfad auf .env muss gesperrt sein"
+run Read file_path 'C:\Users\max\proj\.env.example'; [ $? = 0 ] && ok || bad "Read mit Windows-Pfad auf .env.example muss erlaubt sein"
+run Grep path 'C:\Users\max\proj\.env.local'; [ $? = 2 ] && ok || bad "Grep mit Windows-Pfad muss gesperrt sein"
 run Read file_path "/home/anna/projekt/README.md"; [ $? = 0 ] && ok || bad "Read README muss erlaubt sein"
 run Grep path ".env.local"; [ $? = 2 ] && ok || bad "Grep in .env.local muss gesperrt sein"
 run Write file_path ".env.local"; [ $? = 0 ] && ok || bad "Andere Werkzeuge bleiben unberührt"
+
+# --- .env per Muster lesen ---
+blocked 'cat .env*'
+blocked 'cat config/.env.*'
+blocked 'head -n 3 .env?'
+blocked 'cat .env[.]local'
+allowed 'cat .env.example'
+allowed 'cat .env.example*'
+allowed 'cat .envrc.md'
+
+# --- git clean -f ---
+blocked 'git clean -f'
+blocked 'git clean -fd'
+blocked 'git clean -xdf'
+blocked 'git clean -d --force'
+blocked 'git -C /tmp/x clean -fdx'
+allowed 'git clean -n'
+allowed 'git clean -nd'
+allowed 'git clean --dry-run'
+
+# --- bash -c / sh -c ---
+blocked 'bash -c "git reset --hard"'
+blocked "sh -c 'rm -rf ~'"
+blocked 'bash -lc "cat .env.local"'
+blocked "bash -c 'cd x && git push --force origin main'"
+blocked "sh -c 'git clean -fd'"
+blocked "bash -c \"bash -c 'rm -rf /'\""
+allowed 'bash -c "echo hallo"'
+allowed 'bash -c "rm -rf node_modules"'
+allowed 'bash einrichten.sh'
+allowed 'sh -c "git status"'
+
+# --- erlaubt bleiben muss weiterhin ---
+allowed 'rm -rf node_modules'
+allowed 'git push --force-with-lease origin feature'
+allowed 'cat .env.example'
 
 # --- Meldung und Robustheit ---
 run Bash command 'git reset --hard'

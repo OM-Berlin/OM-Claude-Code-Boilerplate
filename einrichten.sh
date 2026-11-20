@@ -46,11 +46,25 @@ first_commit() {
     echo "        einzurichten und den ersten Commit zu machen."
   fi
 }
+# Eigene Arbeit heißt: Commits, die auf keinem Remote liegen, oder ungesicherte Änderungen.
+eigene_arbeit() {
+  [ -n "$(git rev-list HEAD --not --remotes 2>/dev/null)" ] && return 0
+  [ -n "$(git status --porcelain 2>/dev/null)" ] && return 0
+  return 1
+}
 vorlage="$(git remote get-url origin 2>/dev/null || true)"
 if [ -d .git ] && printf '%s' "$vorlage" | grep -q 'OM-Claude-Code-Boilerplate'; then
-  rm -rf .git
-  git init -q
-  first_commit "Geschichte der Vorlage entfernt, eigene begonnen"
+  if eigene_arbeit; then
+    echo "  [3/5] Dieser Ordner hängt noch an der Vorlage, enthält aber schon Ihre eigenen"
+    echo "        Änderungen. Deshalb wird nichts gelöscht. Wenn Sie die Geschichte der Vorlage"
+    echo "        loswerden wollen: Sichern Sie Ihre Dateien, entpacken Sie das ZIP neu in einen"
+    echo "        leeren Ordner und kopieren Sie Ihre Dateien hinein. Oder bitten Sie Claude,"
+    echo "        den Verweis auf die Vorlage zu entfernen."
+  else
+    rm -rf .git
+    git init -q
+    first_commit "Geschichte der Vorlage entfernt, eigene begonnen"
+  fi
 elif [ -d .git ]; then
   echo "  [3/5] Git-Geschichte ist schon Ihre eigene und bleibt."
 else
@@ -67,7 +81,9 @@ else
 fi
 
 # 5. Hooks prüfen
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "${EINRICHTEN_SKIP_HOOKTESTS:-}" ]; then
+  echo "  [5/5] Hook-Tests übersprungen (nur für die Tests dieses Skripts)."
+elif command -v python3 >/dev/null 2>&1; then
   if bash .claude/hooks/tests/run-all.sh >/dev/null 2>&1; then
     echo "  [5/5] Alle Hook-Tests grün."
   else

@@ -8,6 +8,8 @@ Es enthält keinen App-Code, keine Zugangsdaten und keine echten Daten. Alles, w
 
 **Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder Codex, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen.
 
+**Zusätzlich python3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Unter macOS und Linux ist es meist schon da. Unter Windows installieren Sie ein echtes Python von python.org und nicht den Platzhalter aus dem Microsoft Store, der nur auf den Store verweist. Ohne python3 setzen diese beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt `einrichten.sh` die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne python3.
+
 1. **Entpacken.** Entpacken Sie `startpaket-claude-code.zip` und geben Sie dem Ordner einen Namen für Ihr Vorhaben, zum Beispiel `abfuhr-erinnerung`. Legen Sie ihn am besten nicht in einen OneDrive- oder Dropbox-Ordner, weil die Synchronisierung beim Arbeiten stört.
 2. **Terminal im Ordner öffnen.** macOS: Rechtsklick auf den Ordner, dann „Dienste“ und „Neues Terminal beim Ordner“. Windows: im Ordner Rechtsklick, dann „In Terminal öffnen“.
 3. **Einrichten.** Das Skript legt `.env.local` für Ihre Schlüssel an, beginnt eine eigene Git-Geschichte und prüft die Hooks. Es ändert nichts außerhalb des Ordners.

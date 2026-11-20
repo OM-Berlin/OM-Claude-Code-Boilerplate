@@ -18,12 +18,27 @@
 set -uo pipefail
 
 payload="$(tr '\r\n' '  ')"
-project="${CLAUDE_PROJECT_DIR:-$PWD}"
+
+# Windows-Pfade (C:\proj\a.ts oder C:/proj/a.ts) werden zu /c/proj/a.ts, wie Git Bash
+# sie sieht. FORMAT_HOOK_DRIVE_ROOT gibt es nur für die Tests (Standard: /).
+drive_root="${FORMAT_HOOK_DRIVE_ROOT:-/}"
+norm_path() {
+  local p="${1//\\//}" d
+  case "$p" in
+    [A-Za-z]:/*)
+      d="$(printf '%s' "${p%%:*}" | tr 'A-Z' 'a-z')"
+      p="${drive_root}${d}/${p#?:/}"
+      ;;
+  esac
+  printf '%s' "$p"
+}
+project="$(norm_path "${CLAUDE_PROJECT_DIR:-$PWD}")"
 
 file="$(printf '%s' "$payload" |
   sed -E -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"((\\.|[^"\\])*)".*/\1/p' |
   head -n 1 | sed -e 's/\\"/"/g' -e 's/\\\\/\\/g')"
 [ -n "$file" ] || exit 0
+file="$(norm_path "$file")"
 case "$file" in /*) ;; *) file="$project/$file" ;; esac
 [ -f "$file" ] || exit 0
 

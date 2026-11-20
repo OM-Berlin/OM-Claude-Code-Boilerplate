@@ -4,7 +4,8 @@
 #
 #   - rm -r oder rm -rf auf / oder auf den eigenen Home-Ordner (~, $HOME)
 #   - git push --force (oder -f, +main) auf main oder master
-#   - git reset --hard
+#   - git reset --hard und git clean -f
+#   - bash -c oder sh -c mit einem dieser Befehle im Argument
 #   - Lesen von .env-Dateien (cat .env, Read-Werkzeug auf .env.local und so weiter);
 #     .env.example bleibt lesbar, dort stehen nur Platzhalter
 #
@@ -53,11 +54,12 @@ unquote() {
 }
 
 is_env_file() {
-  local base
-  base="$(unquote "${1##*/}")"
+  local base path="${1//\\//}" # Windows-Pfade: \ wird zu /
+  base="$(unquote "${path##*/}")"
   case "$base" in
-    *.example | *.sample | *.template) return 1 ;;
+    *.example | *.sample | *.template | .env.example*) return 1 ;;
     .env | .env.* | *.env) return 0 ;;
+    .env*) case "$base" in *[*?[]*) return 0 ;; esac ;; # Muster wie .env*
   esac
   return 1
 }
@@ -88,7 +90,7 @@ check_rm() { # check_rm <args...>
 }
 
 is_main() {
-  local ref="${1#+}"
+  local ref="$(unquote "${1#+}")"
   ref="${ref##*:}"
   ref="${ref#refs/heads/}"
   [ "$ref" = "main" ] || [ "$ref" = "master" ]
@@ -105,6 +107,15 @@ check_git() { # check_git <args nach "git">
     sub="$1"; shift; break
   done
   case "$sub" in
+    clean)
+      for a in "$@"; do
+        case "$a" in
+          --force) block "git clean --force löscht ungesicherte Dateien endgültig. Nutze git clean -n für eine Vorschau und frag den Nutzer, bevor etwas gelöscht wird." ;;
+          --*) ;;
+          -*f*) block "git clean -f löscht ungesicherte Dateien endgültig. Nutze git clean -n für eine Vorschau und frag den Nutzer, bevor etwas gelöscht wird." ;;
+        esac
+      done
+      ;;
     reset)
       for a in "$@"; do
         [ "$a" = "--hard" ] && block "git reset --hard verwirft alle nicht gesicherten Änderungen. Nutze git stash oder frag den Nutzer, bevor etwas verworfen wird."
@@ -153,6 +164,23 @@ check_env_read() { # check_env_read <wort...>
   return 1
 }
 
+check_string() { # zerlegt einen Befehlstext an ; & | ( ) und Backticks und prüft jedes Stück
+  local seg
+  while IFS= read -r seg; do
+    check_segment "$seg"
+  done <<<"$(printf '%s' "$1" | tr ';&|()`' '\n\n\n\n\n\n')"
+}
+
+check_shell_c() { # check_shell_c <args nach bash/sh>: bash -c "..." prüft den Text im Argument
+  local a found=0 inner=""
+  for a in "$@"; do
+    if [ "$found" = 1 ]; then inner="$inner $a"; continue; fi
+    case "$a" in -c | -[!-]*c*) found=1 ;; esac
+  done
+  [ -n "$inner" ] && check_string "$(unquote "$inner")"
+  return 0
+}
+
 check_segment() {
   local -a words
   read -r -a words <<<"$1"
@@ -172,6 +200,7 @@ check_segment() {
   case "$cmd" in
     rm) check_rm ${rest[@]+"${rest[@]}"} ;;
     git) check_git ${rest[@]+"${rest[@]}"} ;;
+    bash | sh | zsh | dash | ksh) check_shell_c ${rest[@]+"${rest[@]}"} ;;
   esac
   local a env_hit=0
   case "$READERS" in
@@ -199,10 +228,7 @@ case "$tool" in
       block ".env-Dateien enthalten Schlüssel und werden nicht durchsucht. Die Namen der Variablen stehen in .env.example."
     ;;
   Bash)
-    segments="$(json_string command | tr ';&|()`' '\n\n\n\n\n\n')"
-    while IFS= read -r seg; do
-      check_segment "$seg"
-    done <<<"$segments"
+    check_string "$(json_string command)"
     ;;
 esac
 exit 0

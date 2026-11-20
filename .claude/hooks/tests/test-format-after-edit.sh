@@ -55,6 +55,22 @@ edit "$P/src/tool.py"; called "ruff format --quiet $P/src/tool.py" "Ruff muss di
 printf '#!/usr/bin/env bash\nexit 1\n' > "$P/node_modules/.bin/prettier"
 edit "$P/src/app.ts"; [ $? = 0 ] && ok || bad "Fehler des Formatierers muss Exitcode 0 bleiben"
 
+# Windows-Pfade (Laufwerksbuchstabe, Backslashes) zählen als absolut. Die Tests bilden
+# C:\ auf einen Ordner im Testverzeichnis ab, weil es /c/ hier nicht gibt.
+export FORMAT_HOOK_DRIVE_ROOT="$WORK/laufwerke/"
+mkdir -p "$WORK/laufwerke/c/proj/src" "$WORK/laufwerke/c/proj/node_modules/.bin"
+touch "$WORK/laufwerke/c/proj/src/app.ts" "$WORK/laufwerke/c/proj/src/bild.png"
+fake "$WORK/laufwerke/c/proj/node_modules/.bin/prettier" prettier
+export CLAUDE_PROJECT_DIR='C:\proj'
+edit 'C:\proj\src\app.ts'
+called "prettier --write --log-level warn $WORK/laufwerke/c/proj/src/app.ts" "Windows-Pfad mit Backslashes muss formatiert werden"
+edit 'C:/proj/src/app.ts'
+called "prettier --write --log-level warn $WORK/laufwerke/c/proj/src/app.ts" "Windows-Pfad mit Schrägstrichen muss formatiert werden"
+edit 'D:\fremd\x.ts'; silent "Anderes Laufwerk nicht anfassen"
+edit 'C:\proj\src\bild.png'; silent "Bilder auch mit Windows-Pfad nicht formatieren"
+unset FORMAT_HOOK_DRIVE_ROOT
+export CLAUDE_PROJECT_DIR="$P"
+
 # Kaputte Eingabe.
 printf 'kein json' | bash "$HOOK"; [ $? = 0 ] && ok || bad "Kaputtes JSON muss durchgehen"
 

@@ -1,4 +1,4 @@
-# =========================================================================
+﻿# =========================================================================
 # einrichten.ps1 (Windows, PowerShell): macht aus dem Startpaket Ihr eigenes
 # Projekt. Einmal ausführen:
 #
@@ -39,12 +39,26 @@ function First-Commit($text) {
         Write-Host "        einzurichten und den ersten Commit zu machen."
     }
 }
+# Eigene Arbeit heißt: Commits, die auf keinem Remote liegen, oder ungesicherte Änderungen.
+function Eigene-Arbeit {
+    if (git rev-list HEAD --not --remotes 2>$null) { return $true }
+    if (git status --porcelain 2>$null) { return $true }
+    return $false
+}
 $vorlage = ""
 if (Test-Path ".git") { $vorlage = (git remote get-url origin 2>$null) }
 if ((Test-Path ".git") -and ($vorlage -like "*OM-Claude-Code-Boilerplate*")) {
-    Remove-Item -Recurse -Force ".git"
-    git init -q
-    First-Commit "Geschichte der Vorlage entfernt, eigene begonnen"
+    if (Eigene-Arbeit) {
+        Write-Host "  [3/4] Dieser Ordner hängt noch an der Vorlage, enthält aber schon Ihre eigenen"
+        Write-Host "        Änderungen. Deshalb wird nichts gelöscht. Wenn Sie die Geschichte der Vorlage"
+        Write-Host "        loswerden wollen: Sichern Sie Ihre Dateien, entpacken Sie das ZIP neu in einen"
+        Write-Host "        leeren Ordner und kopieren Sie Ihre Dateien hinein. Oder bitten Sie Claude,"
+        Write-Host "        den Verweis auf die Vorlage zu entfernen."
+    } else {
+        Remove-Item -Recurse -Force ".git"
+        git init -q
+        First-Commit "Geschichte der Vorlage entfernt, eigene begonnen"
+    }
 } elseif (Test-Path ".git") {
     Write-Host "  [3/4] Git-Geschichte ist schon Ihre eigene und bleibt."
 } else {
