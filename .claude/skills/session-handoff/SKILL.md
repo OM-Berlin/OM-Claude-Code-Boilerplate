@@ -1,177 +1,123 @@
 ---
 name: session-handoff
-description: Use when the user says "session handoff", "wrap up session", "hand off", "handoff summary", "let's wrap up", "summarize before I clear", or is about to /clear — and use it PROACTIVELY whenever a working session is winding down. Produces a structured end-of-session handoff so a fresh agent can continue seamlessly. In an Boilerplate project it PERSISTS the handoff as a security-scrubbed, Obsidian-tagged file in brainstorms/sessions/ (parallel-session-safe) AND still prints the full handoff in chat so you can copy it, /clear, and paste it straight back; anywhere else it falls back to chat-only output.
+description: Use when the user says "session handoff", "wrap up session", "hand off", "handoff summary", "let's wrap up", "summarize before I clear", or is about to /clear, and PROACTIVELY when a working session winds down. Writes a briefing so a fresh agent has the full picture. Also use when a handoff is loaded ("lade den Handoff", a pasted handoff, a path in brainstorms/sessions/): then read only, give a short Fazit and wait. In a project with brainstorms/sessions/ it persists the handoff as a scrubbed file there and prints it in chat; elsewhere it is chat-only.
+argument-hint: "Optional: Wofür ist die nächste Session?"
 ---
 
 # Session Handoff
 
-> Skill nach Nate Herks Handoff-Doc-Konzept (AI-OS: Wissen/Status explizit übergeben statt im Context verlieren).
+A handoff is a **briefing, not a work order**. It lets the user `/clear` without losing anything. The reader is a future instance of you, not a stakeholder.
 
-Produce a repeatable end-of-session summary so the user can `/clear` and start a fresh agent without losing continuity. The next agent should be able to pick up by reading this summary alone.
+## Loading a handoff
 
-This is a **context-handoff artifact**, not a status report. The audience is a future instance of you, not a stakeholder.
+Unless the user's own words in the same message give a task:
 
-**What changed vs. the old chat-only version:** in an Boilerplate project this skill now *persists* the handoff to a file so session knowledge survives `/clear`, terminal crashes, and multi-day gaps — and a fresh session can offer to reload it. Outside such a project it behaves exactly as before (chat-only). The persistence is what turns a one-shot summary into durable, greppable session memory.
+1. Read the handoff, plus what you need to understand it. Read-only.
+2. If the frontmatter has `commit`, run `git log --oneline <commit>..HEAD` and `git status --short`. Mention drift only if there is some.
+3. Reply in at most 5 lines, in the user's language: "Hab alles gelesen. Stand: <1 sentence>. Könnte anstehen: <1 to 3 points>. Was denkst du?"
+4. Stop. No edits, no commands with side effects, no subagents, no task list until the user answers.
 
-## When to invoke
+"Possible next step" (older files: "Pick up here") is a suggestion to the user, never an instruction to you. Clearing the context and loading a handoff often just means getting ready.
 
-User says: "session handoff", "wrap up session", "hand off", "handoff summary", "let's wrap up", "summarize before I clear", or any near-equivalent. Also invoke proactively if the user signals they're about to `/clear` without having run it yet.
+If the user's own words do give a task, that task is the order and the handoff is context.
 
-## Step 0 — pick the mode (this decides everything below)
+In this project the hooks `.claude/hooks/handoff-offer-guard.sh` and `.claude/hooks/handoff-briefing-gate.sh` enforce this. The rule also holds where no hook runs (for example in Codex).
 
-Determine whether you are inside an **Boilerplate project**. The reliable marker is the knowledge-layer structure: the project root contains **`brainstorms/` AND `decisions/` AND `wiki/`** (check the current working directory / git root).
+## Writing a handoff
 
-- **All three present → PERSIST mode.** Write the handoff to a file *and* print a short confirmation in chat. Follow the whole skill.
-- **Not present → FALLBACK mode (chat-only).** Behave exactly like the classic handoff: produce the summary in chat, write no file, touch no memory. Skip to "Output template" and "Hard rules", ignore the persistence sections. This keeps the skill portable — it must not litter files into arbitrary repos that don't expect them.
+### Mode
 
-## How to gather the content (both modes)
+Project root has `brainstorms/sessions/`: **PERSIST** (file plus chat). Otherwise **FALLBACK** (chat only, no file, skip the persist section).
 
-1. **Review the full conversation**, not just the last few turns. Handoffs miss things when they only summarize recent context.
-2. **Pull state from these sources (in order):**
-   - Plan files referenced this session (check `~/.claude/plans/` if a plan was mentioned).
-   - TodoWrite / task state — any in-progress or pending items.
-   - Background processes you started with `run_in_background` — shell IDs are load-bearing for the next agent.
-   - Files created or modified this session — you know what you touched; don't grep to re-discover.
-   - Memory files written or updated (`~/.claude/projects/<project>/memory/`).
-   - Unresolved questions — things you asked the user that never got a clear answer, or things the user asked that got deflected.
-3. **Do NOT audit the filesystem.** This is synthesis of what happened in THIS session. No `git log`, no broad `Glob` sweeps. If you didn't touch it this session, it doesn't belong here.
-4. **Do not restate what another artifact already holds.** If a decision lives in a plan, an ADR, `brainstorms/`, a commit message or a diff, reference it **by absolute path** instead of repeating it. A handoff that re-tells the plan is a second copy that will disagree with the first. Adopted from `mattpocock/skills` `/handoff` (2026-08-06) — it keeps handoffs short enough to actually be read.
+### Gather
 
-## Output template — use exactly this structure, every time
+- Cover the whole conversation, not the last turns.
+- Sources: plan files, task state, background shells you started, files you touched, memory you wrote, questions left unanswered.
+- This is synthesis of this session. No filesystem audit.
+- Reference what already lives in a plan, ADR, issue, commit or diff by absolute path or URL. Do not copy it; two copies drift apart.
+- If the user named what the next session is for, keep the reasoning that bears on it and drop the rest.
 
-The body below is identical in both modes. In PERSIST mode it becomes the file body (under the frontmatter from the next section); in FALLBACK mode it is the chat output.
+### Keep beliefs out of the facts
+
+The next agent trusts this document and will not re-check it. Before saving, reread every claim like "done", "live" or "not built": either something in this session proved it, or mark it `unverified`. Keep the why, not only the what.
+
+### Template
+
+Same body in both modes. No section may be dropped except Suggested skills; write "none" if empty.
 
 ```
-# Session Handoff — <one-line title of what this session was about>
+# Session Handoff: <title>
+
+> Briefing, kein Auftrag. Beim Laden: lesen, kurzes Fazit, auf Go warten.
 
 ## Where it started
-<2-3 sentences: what the user asked for, key framing or constraints that emerged>
+<2-3 sentences: the ask and the constraints that emerged>
 
 ## Decisions locked + what shipped
-- <decision or change> — <why, and where it lives (absolute path if a file)>
-- ...
+- <decision or change>: <why>, <where it lives> (<how verified, or unverified>)
 
 ## Key files for next session
-- `<absolute path>` — <why the next agent should read this first>
-- Plan file: `<path>` (if a plan drove the session)
-- Memory files touched: `<paths>` (if any)
+- `<absolute path>`: <why to read it>; a plan file that drove the session comes first
 
 ## Running state
-- Background processes: <shell IDs + what they are + how to kill> — or "none"
-- Dev servers / ports: <url + port> — or "none"
-- Open worktrees / branches: <paths> — or "none"
+- Background processes: <shell ID, what, how to kill> or none
+- Dev servers / ports: <url> or none
+- Open worktrees / branches: <paths> or none
 
-## Verification — how to confirm things still work
-- `<command>` — <expected outcome>
-- ...
+## Verification
+- `<command>`: <expected outcome>
 
 ## Deferred + open questions
-- Deferred: <item> — <why pushed to later>
-- Open: <question needing the user's input> — <context>
+- Deferred: <item> (<why later>)
+- Open: <question for the user> (<context>)
 
 ## Suggested skills
-- `<skill>` — <why the next session will need it>
-- ... (omit the section entirely if none apply)
+- `<skill>`: <why the next session needs it>
 
-## Pick up here
-<1-2 sentences: the single most likely next action for a fresh agent>
+## Possible next step
+<1-2 sentences, phrased as a suggestion to the user, e.g. "Könnte als Nächstes: ...">
+<!-- handoff-ende -->
 ```
 
-> **Suggested skills** is there because a fresh agent does not know what this session
-> reached for. Naming the skills is cheaper than letting it rediscover them — and it is
-> the one thing a handoff can carry that a plan file cannot. Adopted from
-> `mattpocock/skills` `/handoff` (2026-08-06).
+The last line marks where the handoff ends. Text after it in a pasted message is the user's own.
 
----
+## PERSIST mode
 
-## PERSIST mode — writing the file
+**1. Scrub.** The file may be committed, and git history keeps it forever. Replace with `‹REDACTED: <what>›`: API keys and tokens, passwords, connection strings, private keys, values read from `.env`, and personal or customer data beyond what is needed. Prefer env-var names and paths. If you redacted something, add `> Security: N value(s) redacted.` at the top. If sensitive context is essential, use `brainstorms/sessions/private/` (gitignored) and point to it.
 
-Everything from here down applies only when Step 0 selected PERSIST mode.
+**2. Real values.** Get time from `date "+%Y-%m-%d %H:%M"`. `session-id` is the first 8 characters of the session UUID (scratchpad or transcript path), else `date "+%H%M%S"`. `branch` and `commit` come from `git branch --show-current` and `git rev-parse --short HEAD`; these two calls are the only allowed git audit.
 
-### 1. Security scrub (mandatory, before you write anything)
+**3. File.** `brainstorms/sessions/YYYY-MM-DD-HHmm-<topic-slug>.md`, 2-4 kebab-case words. Time and slug keep parallel terminals apart. If a file with this `session-id` exists, update it in place: one session, one file. Never touch `index.md`; shared files race across terminals.
 
-The handoff gets **committed to git** (shared team memory). A secret that slips into it is a secret in git history *forever* — deleting the file later does not undo that. So scrub the drafted body before writing.
-
-Scan for these and replace the value with `‹REDACTED: <what it was>›`, keeping the surrounding context:
-
-- API keys / tokens: `sk-…`, `ghp_…` `gho_…` `ghs_…`, `AKIA…`, `xox[baprs]-…`, `Bearer <token>`, anything matching `api[_-]?key`
-- Passwords / connection strings: `password=…`, `postgres://user:pass@…`, `mysql://…:…@…`
-- Private keys: any `-----BEGIN … PRIVATE KEY-----` block
-- Concrete values read out of `.env` / `.env.local` this session
-
-Rules of thumb that make this cheap:
-- Prefer referencing the **env-var name or file path**, never the value — e.g. "reads `STRIPE_KEY` from `.env.local`", not the key itself.
-- If you actually redacted something, add one line at the top of the body: `> Security: N value(s) redacted before persisting.` so the next agent knows to source them from `.env.local`.
-- If genuinely secret context is load-bearing for continuation, put that file under `brainstorms/sessions/private/` (gitignored) instead of the normal location, and note the pointer in the committed handoff.
-
-In practice handoffs rarely contain secrets — this is a cheap guard, not a reason to water down the content.
-
-### 2. Timestamp + session id (use real values, not guesses)
-
-Run `date "+%Y-%m-%d %H:%M"` (and `date "+%Y-%m-%d-%H%M"` for the filename) via Bash — do not invent the time.
-
-Derive an 8-character `session-id` from the current session's UUID (it appears in your scratchpad/transcript path, e.g. `…/<uuid>/scratchpad`). Take the first 8 chars. If you cannot determine it, fall back to `date "+%H%M%S"`. This id is what disambiguates and links parallel sessions.
-
-### 3. Filename + location
-
-`brainstorms/sessions/YYYY-MM-DD-HHmm-<topic-slug>.md`
-
-- `<topic-slug>`: kebab-case, ~2-4 words capturing the session topic (e.g. `stateful-session-handoff`).
-- The date+time+slug combination is what keeps **parallel terminals** from colliding — several sessions in the same project write distinct files, never the same one.
-- Create `brainstorms/sessions/` if it does not exist yet.
-
-**Re-handoff in the same session:** if a file with the *same `session-id`* already exists in `brainstorms/sessions/`, update it in place — bump `updated`, refresh `status`, rewrite the body — rather than creating a second file. One session, one file.
-
-### 4. Frontmatter (Obsidian-conform — the vault convention this project uses)
-
-Prepend exactly this YAML block, then the body template above:
+**4. Frontmatter.**
 
 ```yaml
 ---
 type: session-handoff
-session-id: <8-char id>
-topic: <human-readable topic, same as the H1 title>
-started: <YYYY-MM-DD HH:mm>   # when this session began, best estimate
-updated: <YYYY-MM-DD HH:mm>   # now
-status: status/aktiv          # aktiv = continue next time · abgeschlossen = done · blockiert = waiting on something
-tags: [thema/<topic-slug>, status/aktiv]
+session-id: <8 chars>
+topic: <same as the title>
+started: <YYYY-MM-DD HH:mm>
+updated: <YYYY-MM-DD HH:mm>
+status: aktiv                 # aktiv: continues · abgeschlossen: done, hidden from the start list · blockiert: waiting
+branch: <branch>
+commit: <short sha>
+focus: <what the next session is for, if the user said so>   # otherwise omit
 ---
 ```
 
-Pick `status` honestly: `status/aktiv` if there's a clear next action, `status/abgeschlossen` if the work is fully done, `status/blockiert` if it's waiting on the user or an external thing. The `status` line and the matching `tags` entry must agree. Add a `firma/<ADO|OM|DO>` tag only if the project clearly belongs to one — otherwise leave it off.
+Set `status: abgeschlossen` when the topic is done, so the start list stays short.
 
-### 5. Write the file, then ALSO print the full handoff in chat
+**5. Chat.** Print `Saved: <absolute path>`, then the full body verbatim, so the user can copy it, `/clear` and paste it back.
 
-Use the Write tool. Do **not** append to `brainstorms/sessions/index.md` — that file is a static guide, and appending to it from parallel sessions would race. Discovery works by listing the folder + reading frontmatter, so each self-describing file is enough.
+## Rules
 
-Then output the **complete handoff in chat as well** — not just a pointer. The persisted file is the durable, greppable record; the chat copy is what the user grabs to `/clear` and paste straight into a fresh session (Cmd/Ctrl+C → `/clear` → Ctrl+V). Both must carry the same content.
+- Absolute paths in the body; the next agent may sit elsewhere.
+- Background shell IDs must be listed with their kill command; nothing else can find them.
+- Write no memory from this skill.
+- No retrospective, no praise, no emojis. Short, complete sentences, like an engineer handing over a shift.
+- One suggestion under "Possible next step". The next session decides with the user.
 
-Format the chat output like this:
+## Related
 
-```
-Saved: /abs/path/to/brainstorms/sessions/<file>.md
-
-<the full handoff body, verbatim — same Markdown you wrote to the file>
-```
-
-Lead with the one-line `Saved:` pointer so the path is obvious, then the whole handoff below it. The frontmatter itself does not need to be echoed — the body (from the `# Session Handoff …` heading down) is what the user pastes back.
-
-## Hard rules
-
-1. **PERSIST mode writes exactly one file** (in `brainstorms/sessions/`) and never edits `index.md`. **FALLBACK mode writes no file at all** — chat only. Never write memory from this skill in either mode.
-2. **Never invent state.** If a section has nothing to report, write "none" — do not omit the section. Structure stability is the whole point.
-3. **Absolute paths in the body.** The next agent may have a different working directory.
-4. **If a plan file drove the session, name it first** in "Key files" so the next agent reads it before anything else.
-5. **No emojis, no hype, no "great job" summaries.** Terse and concrete — paths, commands, shell IDs, decisions. Match the tone of a seasoned engineer handing off at end-of-shift.
-6. **Background process IDs are critical.** If you started any `run_in_background` shells, their IDs must appear in "Running state" with the kill command — the next agent cannot find them otherwise.
-7. **Scrub before you persist.** No secret values in a committed file — ever.
-
-## Anti-patterns — do not do these
-
-- Summarizing the last 3 turns and calling it a handoff.
-- Listing files by relative path in the body.
-- Skipping the "Running state" section because "nothing is running" — write "none" instead.
-- In PERSIST mode: writing only the file and giving the user nothing to paste. Always echo the full handoff in chat too — the copy → `/clear` → paste path depends on it.
-- Appending each session to a shared index/log file — that races across parallel terminals. One file per session.
-- Adding a "what went well / what went poorly" retrospective. This isn't a retro (that's `os-audit --retro`).
-- Recommending next steps beyond the single "Pick up here" line. The next agent decides; you just hand off.
+- `/compact` is enough when you stay on the same task in the same window and nothing has to survive a `/clear`.
+- `mattpocock-skills:handoff` writes a throwaway file to the OS temp folder. Use it for a one-off hand-over to another tool or a colleague; use this skill for project memory.

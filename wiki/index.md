@@ -1,13 +1,11 @@
----
-okf_version: "0.1"
----
+# wiki/: geprüftes Wissen
 
-# Projekt-Wiki — OKF-Wissens-Bundle
+Hier steht, was Sie in vier Wochen noch nachschlagen wollen: Begriffe, Abläufe, Ansprechstellen, Entscheidungsgründe. Claude pflegt die Seiten, Sie prüfen sie.
 
-Destilliertes Projektwissen als [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)-Bundle (v0.1), von Claude gepflegt — Suche: `python3 wiki/okf-cli.py find "<query>"` · Graph: `python3 wiki/okf-viz.py` · Historie: [log.md](log.md).
+- Eine Seite je Thema, kurz und mit Quelle.
+- Jede neue Seite bekommt hier eine Zeile: `- [Titel](datei.md): ein Satz, worum es geht`.
+- Was nur heute gilt, gehört nicht hierher, sondern nach `brainstorms/`.
 
-## Katalog
+## Seiten
 
-* [_hot.md](_hot.md) - Hot Page: Kurzfassung unter 500 Wörtern, zuerst lesen
-
-<!-- noch leer — jede neue Page hier eintragen: `* [Titel](datei.md) - description aus dem Frontmatter` · Unterordner als `* [ordner/](ordner/index.md) - Beschreibung` -->
+- (noch keine)

@@ -5,8 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); bash \"$ROOT/.codex/hooks/list-recent-handoffs.sh\"",
-            "statusMessage": "Letzte Übergaben werden gesucht"
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); HANDOFF_AGENT=codex CLAUDE_PROJECT_DIR=\"$ROOT\" bash \"$ROOT/.claude/hooks/list-recent-handoffs.sh\"",
+            "statusMessage": "Offene Übergaben werden gesucht"
           }
         ]
       }

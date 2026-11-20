@@ -1,62 +1,81 @@
 #!/usr/bin/env bash
 # =========================================================================
-# Einrichten — macht aus dem Klon ein eigenes Projekt. Einmal ausführen:
+# einrichten.sh: macht aus dem Startpaket Ihr eigenes Projekt. Einmal ausführen:
 #
 #   bash einrichten.sh
 #
-# Was passiert:
-#   1. .env.local wird aus .env.example angelegt (echte Schlüssel gehören nur dorthin)
+# Was passiert, alles nur in diesem Ordner:
+#   1. .env.local wird aus .env.example angelegt (echte Schlüssel nur dorthin)
 #   2. die Hook-Skripte werden ausführbar gemacht
-#   3. die Git-Geschichte der Vorlage wird durch eine eigene ersetzt (erster Commit)
-#   4. es wird geprüft, dass .env.local wirklich ignoriert wird
+#   3. Git beginnt eine eigene Geschichte für dieses Projekt (erster Commit)
+#   4. es wird geprüft, dass .env.local nie hochgeladen wird
+#   5. die Hooks werden mit ihren Tests geprüft (wenn python3 da ist)
 #
+# Globale Einstellungen auf Ihrem Rechner fasst das Skript nicht an.
 # Läuft gefahrlos mehrfach: Vorhandenes wird nicht überschrieben.
 # =========================================================================
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
-echo "→ Projekt einrichten in: $(pwd)"
+echo "Projekt einrichten in: $(pwd)"
 
 # 1. .env.local
 if [ -f .env.local ]; then
-  echo "   .env.local ist schon da, bleibt unverändert."
+  echo "  [1/5] .env.local ist schon da und bleibt unverändert."
 else
   cp .env.example .env.local
-  echo "   .env.local aus .env.example angelegt. Echte Werte nur dort eintragen."
+  echo "  [1/5] .env.local angelegt. Echte Schlüssel tragen Sie nur dort ein."
 fi
 
 # 2. Hooks ausführbar
-chmod +x .claude/hooks/*.sh .codex/hooks/*.sh 2>/dev/null
-echo "   Hook-Skripte ausführbar gemacht."
+chmod +x .claude/hooks/*.sh .claude/hooks/tests/*.sh 2>/dev/null
+echo "  [2/5] Hook-Skripte sind ausführbar."
 
 # 3. Eigene Git-Geschichte
 if ! command -v git >/dev/null 2>&1; then
-  echo "   Git fehlt. Erst Git installieren (siehe Setup-Checkliste), dann noch einmal ausführen."
+  echo "  [3/5] Git fehlt. Bitte Git installieren und das Skript noch einmal starten."
   exit 1
 fi
+first_commit() {
+  git add -A
+  if git commit -q -m "chore: Projekt aus dem Startpaket angelegt" 2>/dev/null; then
+    echo "  [3/5] $1, erster Commit gemacht."
+  else
+    echo "  [3/5] $1. Den ersten Commit hat Git abgelehnt, meist weil Git Ihren Namen"
+    echo "        noch nicht kennt. Nicht schlimm: Bitten Sie später Claude, Git für Sie"
+    echo "        einzurichten und den ersten Commit zu machen."
+  fi
+}
 vorlage="$(git remote get-url origin 2>/dev/null || true)"
 if [ -d .git ] && printf '%s' "$vorlage" | grep -q 'OM-Claude-Code-Boilerplate'; then
   rm -rf .git
   git init -q
-  git add -A
-  git commit -q -m "chore: Projekt aus der Kurs-Boilerplate angelegt"
-  echo "   Eigene Git-Geschichte begonnen (erster Commit)."
+  first_commit "Geschichte der Vorlage entfernt, eigene begonnen"
 elif [ -d .git ]; then
-  echo "   Git-Geschichte ist schon eigene, bleibt."
+  echo "  [3/5] Git-Geschichte ist schon Ihre eigene und bleibt."
 else
   git init -q
-  git add -A
-  git commit -q -m "chore: Projekt aus der Kurs-Boilerplate angelegt"
-  echo "   Git angelegt, erster Commit gemacht."
+  first_commit "Git angelegt"
 fi
 
-# 4. Prüfen, dass Schlüssel nicht hochgeladen würden
+# 4. Schlüssel werden nie hochgeladen
 if git check-ignore -q .env.local; then
-  echo "   Geprüft: .env.local wird von Git ignoriert."
+  echo "  [4/5] Geprüft: Git ignoriert .env.local."
 else
-  echo "   ACHTUNG: .env.local wird NICHT ignoriert. .gitignore prüfen, bevor etwas hochgeladen wird."
+  echo "  [4/5] ACHTUNG: Git würde .env.local hochladen. Bitte .gitignore prüfen, bevor Sie etwas hochladen."
   exit 1
 fi
 
+# 5. Hooks prüfen
+if command -v python3 >/dev/null 2>&1; then
+  if bash .claude/hooks/tests/run-all.sh >/dev/null 2>&1; then
+    echo "  [5/5] Alle Hook-Tests grün."
+  else
+    echo "  [5/5] Mindestens ein Hook-Test ist rot. Details: bash .claude/hooks/tests/run-all.sh"
+  fi
+else
+  echo "  [5/5] Hook-Tests übersprungen, weil python3 fehlt. Die Handoff-Hooks bleiben dann still."
+fi
+
 echo
-echo "Fertig. Jetzt: die erste Zeile in CLAUDE.md ersetzen, dann 'claude' oder 'codex' starten."
+echo "Fertig. Starten Sie jetzt 'claude' (oder 'codex') in diesem Ordner."

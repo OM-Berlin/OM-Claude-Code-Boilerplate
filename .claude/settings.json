@@ -1,22 +1,18 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "disableBypassPermissionsMode": "disable"
+  },
   "extraKnownMarketplaces": {
     "mattpocock": {
       "source": {
         "source": "github",
         "repo": "mattpocock/skills"
       }
-    },
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
     }
   },
   "enabledPlugins": {
-    "mattpocock-skills@mattpocock": true,
-    "claude-md-management@claude-plugins-official": true,
-    "caveman@caveman": true
+    "mattpocock-skills@mattpocock": true
   },
   "hooks": {
     "SessionStart": [
@@ -39,12 +35,33 @@
         ]
       }
     ],
-    "Stop": [
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-commands.sh\""
+          }
+        ]
+      },
       {
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/run-gate.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/handoff-briefing-gate.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-after-edit.sh\"",
+            "timeout": 30
           }
         ]
       }

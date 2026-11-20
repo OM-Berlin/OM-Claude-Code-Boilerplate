@@ -1,0 +1,5 @@
+# Shell-Skripte immer mit LF-Zeilenenden, sonst laufen die Hooks unter Windows nicht.
+*.sh text eol=lf
+
+# Nicht ins Startpaket (scripts/build-zip.sh nutzt git archive):
+scripts/ export-ignore
