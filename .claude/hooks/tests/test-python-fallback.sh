@@ -38,7 +38,9 @@ fakepy() { # fakepy <pfad> <art> [py]   Art: gut | store | py2 | fehlt
         printf '#!/bin/sh\nexec "%s" %s "$@"\n' "$REAL_BIN" "$REAL_ARGS" > "$1"
       fi ;;
     store) printf '#!/bin/sh\necho "Python was not found; run without arguments to install from the Store." >&2\nexit 49\n' > "$1" ;;
-    py2)   printf '#!/bin/sh\nexit 1\n' > "$1" ;;
+    # Python 2 startet und tut alles, nur die Prüfung auf Python 3 (version_info) fällt durch.
+    # So besteht nur, wer die Version wirklich prüft: Ein bloßes "läuft" reicht nicht.
+    py2)   printf '#!/bin/sh\ncase "$*" in *version_info*) exit 1 ;; esac\nexit 0\n' > "$1" ;;
     *)     return 0 ;;
   esac
   chmod +x "$1"
