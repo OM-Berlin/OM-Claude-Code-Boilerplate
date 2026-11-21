@@ -4,10 +4,12 @@
 #
 #   - rm -r oder rm -rf auf / oder auf den eigenen Home-Ordner (~, $HOME)
 #   - git push --force (oder -f, +main) auf main oder master
-#   - git reset --hard und git clean -f
+#   - git reset --hard, git clean -f sowie git checkout . und git restore . (verwerfen
+#     alle ungesicherten Änderungen; einzelne Dateien und Branch-Wechsel bleiben erlaubt)
 #   - bash -c oder sh -c mit einem dieser Befehle im Argument
-#   - Lesen von .env-Dateien (cat .env, Read-Werkzeug auf .env.local und so weiter);
-#     .env.example bleibt lesbar, dort stehen nur Platzhalter
+#   - Lesen von .env-Dateien (cat .env, diff, cmp, rekursives grep über den ganzen
+#     Ordner ohne --exclude, Read-Werkzeug auf .env.local, Grep-Werkzeug mit
+#     glob .env* und so weiter); .env.example bleibt lesbar, dort stehen nur Platzhalter
 #
 # So funktioniert er: Claude Code schickt vor jedem Aufruf von Bash, Read oder Grep
 # ein JSON auf stdin. Passt der Befehl zur Liste, endet der Hook mit Exitcode 2.
@@ -28,7 +30,7 @@ set -uo pipefail
 set -f # Wörter wie * nicht als Dateinamen auflösen
 
 BLOCKED_EXIT=2
-READERS=" cat less more head tail bat nl grep egrep fgrep rg sed awk source . xxd od strings base64 cut sort uniq type Get-Content "
+READERS=" cat less more head tail bat nl grep egrep fgrep rg sed awk source . xxd od strings base64 cut sort uniq type Get-Content diff cmp vimdiff colordiff "
 PREFIXES=" sudo env command nohup time exec builtin { "
 
 payload="$(tr '\r\n' '  ')"
@@ -75,6 +77,60 @@ is_root_or_home() {
   return 1
 }
 
+# Muster für das Grep-Werkzeug (Feld glob), etwa **/.env* oder *.{js,env}.
+is_env_glob() {
+  local base g="${1//\\//}"
+  base="$(unquote "${g##*/}")"
+  is_env_file "$base" && return 0
+  case "$base" in *.example* | *.sample* | *.template*) return 1 ;; esac
+  case "$base" in
+    *[*?[{]*) case "$base" in *.env* | *"{env"* | *",env"*) return 0 ;; esac ;;
+  esac
+  return 1
+}
+
+# Ziel einer rekursiven Suche, das den ganzen Ordner (und damit .env-Dateien) einschließt.
+is_wide_target() {
+  local t
+  t="$(unquote "$1")"
+  is_root_or_home "$t" && return 0
+  case "$t" in . | ./ | ./\* | \* | .. | ../ | ../\*) return 0 ;; esac
+  [ "$t" = "$project" ] && return 0
+  [ "$t" = "$project/" ] && return 0
+  return 1
+}
+
+# Rekursives grep (-r, -R, --recursive) über den ganzen Ordner liest auch .env-Dateien,
+# außer eine --exclude-Angabe nimmt sie aus. Einzelne Unterordner wie src bleiben frei.
+check_grep_recursive() { # check_grep_recursive <args nach grep>
+  local a prev="" recursive=0 positional=0 has_pattern_opt=0 wide=0
+  for a in "$@"; do
+    case "$a" in
+      --recursive | --dereference-recursive) recursive=1 ;;
+      --exclude=*env* | --exclude=*ENV*) return 0 ;;
+      --regexp | --regexp=* | --file | --file=*) has_pattern_opt=1 ;;
+      --*) ;;
+      -*) case "$a" in *[rR]*) recursive=1 ;; esac
+          case "$a" in *[ef]) has_pattern_opt=1 ;; esac ;;
+      *)
+        if [ "$prev" = "--exclude" ]; then
+          case "$a" in *env* | *ENV*) return 0 ;; esac
+        else
+          positional=$((positional + 1))
+          is_wide_target "$a" && wide=1
+        fi ;;
+    esac
+    prev="$a"
+  done
+  [ "$recursive" = 1 ] || return 0
+  # Ohne Ziel durchsucht GNU grep -r den aktuellen Ordner; das erste Wort ist das Suchmuster.
+  [ "$has_pattern_opt" = 1 ] || positional=$((positional - 1))
+  [ "$positional" -le 0 ] && wide=1
+  [ "$wide" = 1 ] &&
+    block "Rekursives grep über den ganzen Ordner liest auch .env-Dateien mit Schlüsseln. Suche in einem Unterordner wie src oder schließe die Dateien mit --exclude='.env*' aus."
+  return 0
+}
+
 check_rm() { # check_rm <args...>
   local recursive=0 a targets=""
   for a in "$@"; do
@@ -89,6 +145,11 @@ check_rm() { # check_rm <args...>
     block "rm -r auf '$targets' würde das ganze System oder den Home-Ordner löschen. Lösch nur einzelne Dateien im Projekt und frag vorher nach."
 }
 
+is_whole_tree() { # "." und Verwandte: alle Dateien im Ordner
+  case "$(unquote "$1")" in . | ./ | ./\* | \* | :/ | :/.) return 0 ;; esac
+  return 1
+}
+
 is_main() {
   local ref="$(unquote "${1#+}")"
   ref="${ref##*:}"
@@ -98,6 +159,7 @@ is_main() {
 
 check_git() { # check_git <args nach "git">
   local dir="$project" sub="" force=0 all=0 a positional=0 skip=0 hits_main=0 has_refspec=0
+  local staged=0 worktree=0
   while [ $# -gt 0 ]; do
     case "$1" in
       -C) dir="$(unquote "${2:-}")"; shift 2; continue ;;
@@ -115,6 +177,22 @@ check_git() { # check_git <args nach "git">
           -*f*) block "git clean -f löscht ungesicherte Dateien endgültig. Nutze git clean -n für eine Vorschau und frag den Nutzer, bevor etwas gelöscht wird." ;;
         esac
       done
+      ;;
+    checkout | restore)
+      for a in "$@"; do
+        case "$a" in
+          --staged) staged=1 ;;
+          --worktree) worktree=1 ;;
+          --*) ;;
+          -*) case "$a" in *S*) staged=1 ;; esac
+              case "$a" in *W*) worktree=1 ;; esac ;;
+          *) is_whole_tree "$a" && all=1 ;;
+        esac
+      done
+      # git restore --staged . nimmt Änderungen nur aus der Vormerkung, die Dateien bleiben.
+      if [ "$all" = 1 ] && ! { [ "$sub" = restore ] && [ "$staged" = 1 ] && [ "$worktree" = 0 ]; }; then
+        block "git $sub . verwirft alle nicht gesicherten Änderungen im Ordner. Nutze git stash, nenne einzelne Dateien oder frag den Nutzer, bevor etwas verworfen wird."
+      fi
       ;;
     reset)
       for a in "$@"; do
@@ -200,12 +278,16 @@ check_segment() {
   case "$cmd" in
     rm) check_rm ${rest[@]+"${rest[@]}"} ;;
     git) check_git ${rest[@]+"${rest[@]}"} ;;
+    grep | egrep | fgrep) check_grep_recursive ${rest[@]+"${rest[@]}"} ;;
     bash | sh | zsh | dash | ksh) check_shell_c ${rest[@]+"${rest[@]}"} ;;
   esac
   local a env_hit=0
   case "$READERS" in
     *" $cmd "*)
+      local skip_next=0
       for a in ${rest[@]+"${rest[@]}"}; do
+        if [ "$skip_next" = 1 ]; then skip_next=0; continue; fi
+        case "$a" in --exclude | --exclude-dir | --exclude-from) skip_next=1; continue ;; esac
         case "$a" in -*) continue ;; esac
         is_env_file "$a" && env_hit=1
       done
@@ -225,6 +307,8 @@ case "$tool" in
     ;;
   Grep)
     is_env_file "$(json_string path)" &&
+      block ".env-Dateien enthalten Schlüssel und werden nicht durchsucht. Die Namen der Variablen stehen in .env.example."
+    is_env_glob "$(json_string glob)" &&
       block ".env-Dateien enthalten Schlüssel und werden nicht durchsucht. Die Namen der Variablen stehen in .env.example."
     ;;
   Bash)

@@ -118,6 +118,71 @@ allowed 'cat .env.example'
 allowed 'cat .env.example*'
 allowed 'cat .envrc.md'
 
+# --- .env über Vergleichsprogramme, rekursive Suche und das Grep-Werkzeug ---
+blocked 'diff .env.example .env.local'
+blocked 'diff -u .env.local .env.example'
+blocked 'cmp .env.local /tmp/x'
+blocked 'vimdiff .env.example .env.local'
+blocked 'grep -rn API_KEY .'
+blocked 'grep -R API_KEY .'
+blocked 'grep -r API_KEY'
+blocked 'grep -rni key ./'
+blocked 'grep --recursive KEY .'
+blocked 'grep -rn KEY *'
+blocked 'egrep -r KEY ..'
+blocked "grep -rn KEY $WORK/feature"
+blocked 'grep -rn KEY "."'
+allowed 'diff a.txt b.txt'
+allowed 'diff .env.example .env.sample'
+allowed 'cmp a.bin b.bin'
+allowed 'grep -rn API_KEY . --exclude=.env*'
+allowed "grep -rn API_KEY --exclude='.env*' ."
+allowed 'grep -rn KEY . --exclude .env.local'
+allowed 'grep -rn TODO src'
+allowed 'grep -rn TODO ./src'
+allowed 'grep -n KEY README.md'
+allowed 'grep KEY file.txt'
+allowed 'ls | grep foo'
+run Grep glob '**/.env*'; [ $? = 2 ] && ok || bad "Grep mit glob **/.env* muss gesperrt sein"
+run Grep glob '.env.*'; [ $? = 2 ] && ok || bad "Grep mit glob .env.* muss gesperrt sein"
+run Grep glob '*.env'; [ $? = 2 ] && ok || bad "Grep mit glob *.env muss gesperrt sein"
+run Grep glob '*.{js,env}'; [ $? = 2 ] && ok || bad "Grep mit glob *.{js,env} muss gesperrt sein"
+run Grep glob '*.ts'; [ $? = 0 ] && ok || bad "Grep mit glob *.ts muss erlaubt sein"
+run Grep glob '**/*.md'; [ $? = 0 ] && ok || bad "Grep mit glob **/*.md muss erlaubt sein"
+run Grep glob '.env.example'; [ $? = 0 ] && ok || bad "Grep mit glob .env.example muss erlaubt sein"
+run Grep glob '*environment*.md'; [ $? = 0 ] && ok || bad "Grep mit glob *environment*.md muss erlaubt sein"
+
+# --- alle Änderungen im Arbeitsordner verwerfen ---
+blocked 'git checkout -- .'
+blocked 'git checkout .'
+blocked 'git checkout HEAD -- .'
+blocked 'git checkout -f -- .'
+blocked 'git checkout main .'
+blocked 'git -C /tmp/x checkout .'
+blocked 'git restore .'
+blocked 'git restore -- .'
+blocked 'git restore --worktree .'
+blocked 'git restore --staged --worktree .'
+blocked 'git restore -SW .'
+blocked 'git restore --source=HEAD .'
+blocked 'git status && git checkout .'
+blocked 'git checkout -- "."'
+allowed 'git restore datei.txt'
+allowed 'git restore src/app.js README.md'
+allowed 'git restore --staged datei.txt'
+allowed 'git restore --staged .'
+allowed 'git restore -S .'
+allowed 'git checkout main'
+allowed 'git checkout -b neuer-zweig'
+allowed 'git checkout feature/x'
+allowed 'git checkout -- datei.txt'
+allowed 'git checkout main -- datei.txt'
+allowed 'git checkout -'
+allowed 'git checkout --orphan sauber'
+allowed 'git switch main'
+run Bash command 'git checkout .'
+grep -q "git stash" "$WORK/err" && ok || bad "Begründung für git checkout . fehlt auf stderr"
+
 # --- git clean -f ---
 blocked 'git clean -f'
 blocked 'git clean -fd'
