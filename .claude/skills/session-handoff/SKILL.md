@@ -1,6 +1,6 @@
 ---
 name: session-handoff
-description: Use when the user says "session handoff", "wrap up session", "hand off", "handoff summary", "let's wrap up", "summarize before I clear", or is about to /clear, and PROACTIVELY when a working session winds down. Writes a briefing so a fresh agent has the full picture. Also use when a handoff is loaded ("lade den Handoff", a pasted handoff, a path in brainstorms/sessions/): then read only, give a short Fazit and wait. In a project with brainstorms/sessions/ it persists the handoff as a scrubbed file there and prints it in chat; elsewhere it is chat-only.
+description: Use when the user says "session handoff", "wrap up session", "hand off", "handoff summary", "let's wrap up", "summarize before I clear", or is about to /clear, and PROACTIVELY when a working session winds down. Writes a briefing so a fresh agent has the full picture. Also use when a handoff is loaded ("lade den Handoff", a pasted handoff, a path in brainstorms/sessions/), then read only, give a short Fazit and wait. In a project with brainstorms/sessions/ it persists the handoff as a scrubbed, Obsidian-tagged file there and prints it in chat; elsewhere it is chat-only.
 argument-hint: "Optional: Wofür ist die nächste Session?"
 ---
 
@@ -21,7 +21,7 @@ Unless the user's own words in the same message give a task:
 
 If the user's own words do give a task, that task is the order and the handoff is context.
 
-In this project the hooks `.claude/hooks/handoff-offer-guard.sh` and `.claude/hooks/handoff-briefing-gate.sh` enforce this. The rule also holds where no hook runs (for example in Codex).
+In OM-Boilerplate projects the hooks `.claude/hooks/handoff-offer-guard.sh` and `.claude/hooks/handoff-briefing-gate.sh` enforce this. The rule also holds where no hook runs (for example in Codex).
 
 ## Writing a handoff
 
@@ -98,14 +98,15 @@ session-id: <8 chars>
 topic: <same as the title>
 started: <YYYY-MM-DD HH:mm>
 updated: <YYYY-MM-DD HH:mm>
-status: aktiv                 # aktiv: continues · abgeschlossen: done, hidden from the start list · blockiert: waiting
+status: status/aktiv          # aktiv: continues · abgeschlossen: done, hidden from the start list · blockiert: waiting
 branch: <branch>
 commit: <short sha>
 focus: <what the next session is for, if the user said so>   # otherwise omit
+tags: [thema/<topic-slug>, status/aktiv]
 ---
 ```
 
-Set `status: abgeschlossen` when the topic is done, so the start list stays short.
+`status` and its tag must agree. Set both to `status/abgeschlossen` when the topic is done, so the start list stays short. Add `firma/<ADO|OM|DO>` only if clear.
 
 **5. Chat.** Print `Saved: <absolute path>`, then the full body verbatim, so the user can copy it, `/clear` and paste it back.
 
