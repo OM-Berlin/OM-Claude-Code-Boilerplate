@@ -162,6 +162,33 @@ const cases = [
   ["grep", { pattern: "KEY" }, false],
   ["edit", { path: ".env.local", edits: [] }, false],
 ];
+// bash unter Windows: Git Bash an den üblichen Orten, nie das bash von WSL.
+const { findBash, makeBashResolver } = ext;
+const same = (got, want, label) => console.log(got === want ? "ok" : `FAIL ${label}: ${got} statt ${want}`);
+const fs = (...files) => (p) => files.includes(p);
+const winEnv = (extra = {}) => ({ ProgramFiles: "C:\\Program Files", LOCALAPPDATA: "C:\\Users\\a\\AppData\\Local", ...extra });
+same(findBash("darwin", {}, () => false), "bash", "macOS: bash aus dem PATH");
+same(findBash("linux", {}, () => false), "bash", "Linux: bash aus dem PATH");
+same(findBash("win32", winEnv({ PATH: "C:\\Windows\\System32" }), fs("C:\\Program Files\\Git\\bin\\bash.exe")),
+  "C:\\Program Files\\Git\\bin\\bash.exe", "Windows: Git Bash unter Program Files");
+same(findBash("win32", winEnv({ PATH: "" }), fs("C:\\Users\\a\\AppData\\Local\\Programs\\Git\\bin\\bash.exe")),
+  "C:\\Users\\a\\AppData\\Local\\Programs\\Git\\bin\\bash.exe", "Windows: Git Bash im Benutzerordner");
+same(findBash("win32", winEnv({ PATH: "C:\\Tools\\Git\\cmd;C:\\Windows" }), fs("C:\\Tools\\Git\\cmd\\git.exe", "C:\\Tools\\Git\\bin\\bash.exe")),
+  "C:\\Tools\\Git\\bin\\bash.exe", "Windows: bash neben git auf dem PATH");
+same(findBash("win32", winEnv({ Path: "C:\\Windows\\System32" }), fs("C:\\Windows\\System32\\bash.exe")),
+  undefined, "Windows: bash.exe aus System32 ist WSL und zählt nicht");
+same(findBash("win32", winEnv({ PATH: "C:\\Users\\a\\AppData\\Local\\Microsoft\\WindowsApps" }), fs("C:\\Users\\a\\AppData\\Local\\Microsoft\\WindowsApps\\bash.exe")),
+  undefined, "Windows: bash.exe aus WindowsApps zählt nicht");
+same(findBash("win32", winEnv({ PATH: "C:\\Windows\\System32;C:\\msys64\\usr\\bin" }), fs("C:\\Windows\\System32\\bash.exe", "C:\\msys64\\usr\\bin\\bash.exe")),
+  "C:\\msys64\\usr\\bin\\bash.exe", "Windows: anderes bash im PATH wird genommen, WSL übersprungen");
+same(findBash("win32", winEnv({ PATH: "C:\\Windows" }), () => false), undefined, "Windows: ohne bash undefined");
+{
+  const lines = [];
+  const resolve = makeBashResolver(() => undefined, (m) => lines.push(m));
+  const a = resolve(), b = resolve();
+  same(`${a}|${b}|${lines.length}`, "undefined|undefined|1", "ohne bash: genau eine Meldung, Aufruf bleibt offen");
+  same(/Git Bash/.test(lines[0] || ""), true, "Meldung nennt Git Bash");
+}
 for (const [toolName, input, blocked] of cases) {
   const result = await handler({ type: "tool_call", toolName, toolCallId: "t1", input }, { cwd });
   const got = Boolean(result && result.block);
