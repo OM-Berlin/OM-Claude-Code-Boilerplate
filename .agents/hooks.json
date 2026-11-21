@@ -1,0 +1,25 @@
+{
+  "handoff-liste": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.claude/hooks/antigravity-adapter.sh\" session-start",
+        "timeout": 10
+      }
+    ]
+  },
+  "gefaehrliche-befehle": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|view_file|grep_search",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.claude/hooks/antigravity-adapter.sh\" pre-tool",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

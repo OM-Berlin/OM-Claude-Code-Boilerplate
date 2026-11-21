@@ -10,6 +10,19 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); CLAUDE_PROJECT_DIR=\"$ROOT\" bash \"$ROOT/.claude/hooks/block-dangerous-commands.sh\"",
+            "statusMessage": "Befehl wird geprüft",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

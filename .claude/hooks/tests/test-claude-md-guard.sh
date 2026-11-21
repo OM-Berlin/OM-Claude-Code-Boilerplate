@@ -2,7 +2,9 @@
 # Wächter für die Regeldateien: Er prüft CLAUDE.md, AGENTS.md und README.md im
 # ganzen Projekt und schlägt an, wenn
 #   (a) eine CLAUDE.md zu lang ist (Wurzel: 4000 Zeichen, jede andere: 2500),
-#   (b) neben einer CLAUDE.md die AGENTS.md fehlt oder nicht auf CLAUDE.md zeigt,
+#   (b) neben einer CLAUDE.md die AGENTS.md fehlt, nicht auf CLAUDE.md zeigt oder mehr
+#       als ein Zeiger ist (über 600 Zeichen), oder der AGENTS.md in der Wurzel die
+#       Zeile @[CLAUDE.md](./CLAUDE.md) fehlt, mit der Google Antigravity CLAUDE.md einbindet,
 #   (c) eine CLAUDE.md einen Pfad in Backticks nennt, den es nicht gibt,
 #   (d) eine der drei Dateien einen ausgemusterten Namen enthält.
 # Warum: Eine lange oder veraltete CLAUDE.md kostet bei jeder Sitzung Aufmerksamkeit
@@ -18,6 +20,8 @@ trap 'rm -rf "$WORK"' EXIT
 
 MAX_ROOT=4000
 MAX_OTHER=2500
+MAX_AGENTS=600
+INCLUDE='@[CLAUDE.md](./CLAUDE.md)'
 RETIRED='caveman|context-mode|superpowers|claude-mem'
 # Dateien, die erst beim Einrichten entstehen und deshalb im Startpaket fehlen dürfen.
 CREATED_BY_SETUP=".env .env.local"
@@ -65,6 +69,12 @@ check_repo() {
       echo "Neben $rel fehlt die AGENTS.md. Legen Sie sie an; sie soll nur auf CLAUDE.md im selben Ordner zeigen."
     elif ! grep -q 'CLAUDE\.md' "$dir/AGENTS.md"; then
       echo "${rel%CLAUDE.md}AGENTS.md erwähnt CLAUDE.md nicht. Sie soll nur auf die CLAUDE.md im selben Ordner zeigen."
+    else
+      n="$(chars "$dir/AGENTS.md")"
+      [ "$n" -gt "$MAX_AGENTS" ] &&
+        echo "${rel%CLAUDE.md}AGENTS.md ist mit $n Zeichen mehr als ein Zeiger (erlaubt sind $MAX_AGENTS). Regeln gehören nur in CLAUDE.md."
+      [ "$dir" = "$root" ] && ! grep -qF "$INCLUDE" "$dir/AGENTS.md" &&
+        echo "AGENTS.md fehlt die Zeile $INCLUDE. Ohne sie bindet Google Antigravity CLAUDE.md nicht ein."
     fi
     while IFS= read -r span; do
       is_checkable_path "$span" || continue
@@ -108,7 +118,7 @@ fixture() { rm -rf "$WORK/fx"; mkdir -p "$WORK/fx/unter" "$WORK/fx/docs"; echo "
 clean_fx() { # saubere Grundlage mit allem, was der Wächter prüft
   local fx; fx="$(fixture)"
   printf '# Regeln\n\nSiehe `docs/info.md` und `unter/`.\n' > "$fx/CLAUDE.md"
-  printf 'Zeigt auf CLAUDE.md.\n' > "$fx/AGENTS.md"
+  printf 'Zeigt auf CLAUDE.md.\n\n%s\n' "$INCLUDE" > "$fx/AGENTS.md"
   printf '# Unter\n' > "$fx/unter/CLAUDE.md"
   printf 'Zeigt auf CLAUDE.md.\n' > "$fx/unter/AGENTS.md"
   echo "info" > "$fx/docs/info.md"
@@ -146,6 +156,10 @@ fx="$(clean_fx)"; rm "$fx/unter/AGENTS.md"
 expect_hit "AGENTS.md fehlt im Unterordner" "$fx" "Neben unter/CLAUDE.md fehlt die AGENTS.md"
 fx="$(clean_fx)"; echo "Eigener Inhalt." > "$fx/unter/AGENTS.md"
 expect_hit "AGENTS.md ohne Verweis" "$fx" "unter/AGENTS.md erwähnt CLAUDE.md nicht"
+fx="$(clean_fx)"; { printf 'Zeigt auf CLAUDE.md.\n'; filler "$MAX_AGENTS"; } > "$fx/unter/AGENTS.md"
+expect_hit "AGENTS.md mit eigenem Inhalt" "$fx" "unter/AGENTS.md ist mit"
+fx="$(clean_fx)"; printf 'Zeigt auf CLAUDE.md.\n' > "$fx/AGENTS.md"
+expect_hit "AGENTS.md ohne Antigravity-Zeile" "$fx" "AGENTS.md fehlt die Zeile"
 
 # (c) Pfade in Backticks
 fx="$(clean_fx)"; printf '# R\n\nSiehe `docs/fehlt.md`.\n' > "$fx/CLAUDE.md"

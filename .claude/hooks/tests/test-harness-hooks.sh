@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+# Tests für die Schutz-Hooks in Codex, Antigravity und Pi. Jedes Programm schickt
+# sein eigenes JSON, in der Form aus seiner offiziellen Doku. Geprüft wird der echte
+# Aufruf aus .codex/hooks.json und .agents/hooks.json sowie die Pi-Erweiterung
+# .pi/extensions/schutz-hooks.ts (nur wenn Node TypeScript direkt laden kann).
+# Lauf: bash .claude/hooks/tests/test-harness-hooks.sh
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+. "$ROOT/.claude/hooks/find-python.sh"
+find_python || { echo "Python 3 fehlt, Test übersprungen (gesucht: python3, python, py -3)"; exit 0; }
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+pass=0; fail=0
+ok()  { pass=$((pass + 1)); }
+bad() { fail=$((fail + 1)); echo "FAIL: $1"; [ -n "${2:-}" ] && echo "      $2"; }
+
+# Testprojekt mit eigenem Git, Kopie der Hooks und einem offenen Handoff.
+PROJ="$WORK/projekt"
+mkdir -p "$PROJ/.claude" "$PROJ/.codex" "$PROJ/.agents" "$PROJ/brainstorms/sessions"
+cp -R "$ROOT/.claude/hooks" "$PROJ/.claude/"
+cp "$ROOT/.codex/hooks.json" "$PROJ/.codex/"
+cp "$ROOT/.agents/hooks.json" "$PROJ/.agents/"
+printf -- '---\ntype: session-handoff\ntopic: Testthema\nstatus: aktiv\nupdated: 2026-11-20 10:00\n---\n' \
+  > "$PROJ/brainstorms/sessions/2026-11-20-1000-testthema.md"
+git -C "$PROJ" init -q -b feature 2>/dev/null || { git -C "$PROJ" init -q && git -C "$PROJ" checkout -q -b feature; }
+
+# hook_cmds <hooks.json> <Ereignis> [<Werkzeug>]: die Befehle, die bei diesem Ereignis
+# (und zu diesem Werkzeugnamen passenden matcher) laufen. Versteht beide Formate:
+# Codex {"hooks": {Ereignis: [...]}} und Antigravity {name: {Ereignis: [...]}}.
+hook_cmds() {
+  $PY_CMD - "$1" "$2" "${3:-}" <<'PY'
+import json, re, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+event, tool = sys.argv[2], sys.argv[3]
+blocks = [data["hooks"]] if "hooks" in data else [v for v in data.values() if isinstance(v, dict)]
+for block in blocks:
+    if block.get("enabled", True) is False:
+        continue
+    for group in block.get(event, []):
+        matcher = group.get("matcher", "")
+        if tool and matcher not in ("", "*") and not re.fullmatch(matcher.strip("^$"), tool):
+            continue
+        for handler in group.get("hooks", [group]):
+            print(handler["command"])
+PY
+}
+
+# json <python-ausdruck>: baut das Eingabe-JSON nach J; P ist der Projektordner.
+# Absichtlich nie als "$(json "{a,b}")": bash 3.2 löst {a,b} in dieser Schachtelung auf.
+json() { J="$(P="$PROJ" $PY_CMD -c "import json,os; P=os.environ['P']; print(json.dumps($1))")"; }
+
+# run <hooks.json> <Ereignis> <Werkzeug> <json>: setzt OUT, ERR und RC.
+run() {
+  local cmd
+  cmd="$(hook_cmds "$1" "$2" "$3")"
+  if [ -z "$cmd" ]; then OUT=""; ERR="kein Hook für $2/$3"; RC=99; return; fi
+  OUT="$(cd "$PROJ" && printf '%s' "$4" | bash -c "$cmd" 2>"$WORK/err")"; RC=$?
+  ERR="$(cat "$WORK/err")"
+}
+
+# field <json> <python-ausdruck auf d>: liest einen Wert aus der JSON-Antwort.
+field() { printf '%s' "$1" | $PY_CMD -c "import json,sys; d=json.load(sys.stdin); print($2)" 2>/dev/null; }
+
+# --- Codex (.codex/hooks.json) ---
+CODEX="$PROJ/.codex/hooks.json"
+codex_common="'session_id':'c1','transcript_path':None,'cwd':P,'model':'gpt-5.5','permission_mode':'default'"
+
+json "{$codex_common,'hook_event_name':'SessionStart','source':'startup'}"; run "$CODEX" SessionStart "" "$J"
+case "$OUT" in *"testthema.md"*"Biete"*) ok ;; *) bad "Codex SessionStart zeigt offenen Handoff" "$OUT $ERR" ;; esac
+json "{$codex_common,'hook_event_name':'SessionStart','source':'resume'}"; run "$CODEX" SessionStart "" "$J"
+[ -z "$OUT" ] && ok || bad "Codex SessionStart bei resume still" "$OUT"
+
+codex_bash() { # codex_bash <befehl> <erwarteter Exitcode>
+  CMD="$1" json "{$codex_common,'hook_event_name':'PreToolUse','turn_id':'t1','tool_name':'Bash','tool_use_id':'u1','tool_input':{'command':os.environ['CMD']}}"; run "$CODEX" PreToolUse Bash "$J"
+  [ "$RC" = "$2" ] && ok || bad "Codex PreToolUse '$1': Exitcode $RC statt $2" "$ERR"
+}
+codex_bash 'git reset --hard' 2
+codex_bash 'rm -rf ~' 2
+codex_bash 'cat .env.local' 2
+codex_bash 'git status' 0
+codex_bash 'ls -la' 0
+case "$ERR" in "") ok ;; *) bad "Codex: erlaubter Befehl ohne Meldung" "$ERR" ;; esac
+codex_bash 'git reset --hard' 2
+case "$ERR" in *"Gesperrt vom Hook"*) ok ;; *) bad "Codex: Sperrgrund auf stderr" "$ERR" ;; esac
+
+# --- Antigravity (.agents/hooks.json) ---
+AGY="$PROJ/.agents/hooks.json"
+agy_common="'conversationId':'ec33ebf9-0cba-4100-8142-c61503f6c587','workspacePaths':[P],'transcriptPath':'/x/transcript.jsonl','artifactDirectoryPath':'/x','modelName':'gemini-3.6-flash-medium'"
+
+json "{$agy_common}"; run "$AGY" SessionStart "" "$J"
+msg="$(field "$OUT" "d['injectSteps'][0]['systemMessage']['systemMessage']")"
+case "$msg" in *"testthema.md"*"Biete"*) ok ;; *) bad "Antigravity SessionStart: injectSteps mit offenem Handoff" "$OUT $ERR" ;; esac
+json "{$agy_common}"; cmd="$(hook_cmds "$AGY" SessionStart)"
+OUT="$(cd "$PROJ" && printf '%s' "$J" | HANDOFF_HINWEIS=aus bash -c "$cmd")"
+[ "$(field "$OUT" "d")" = "{}" ] && ok || bad "Antigravity SessionStart ohne Liste: {}" "$OUT"
+
+agy_tool() { # agy_tool <werkzeug> <args als python-dict> <allow|deny> <name>
+  json "{$agy_common,'toolCall':{'name':'$1','args':$2},'stepIdx':3}"; run "$AGY" PreToolUse "$1" "$J"
+  local decision
+  decision="$(field "$OUT" "d['decision']")"
+  [ "$decision" = "$3" ] && ok || bad "Antigravity $4: '$decision' statt '$3'" "$OUT $ERR"
+}
+agy_tool run_command "{'CommandLine':'git reset --hard','Cwd':P,'WaitMsBeforeAsync':5000}" deny "git reset --hard"
+agy_tool run_command "{'CommandLine':'rm -rf \"\$HOME\"','Cwd':P,'WaitMsBeforeAsync':5000}" deny "rm -rf mit Anführungszeichen"
+agy_tool run_command "{'CommandLine':'git push --force origin main','Cwd':P,'WaitMsBeforeAsync':5000}" deny "force push"
+agy_tool run_command "{'CommandLine':'ls -la','Cwd':P,'WaitMsBeforeAsync':5000}" allow "ls -la"
+agy_tool view_file "{'AbsolutePath':P+'/.env.local'}" deny "view_file .env.local"
+agy_tool view_file "{'AbsolutePath':P+'/README.md','StartLine':1}" allow "view_file README.md"
+agy_tool grep_search "{'SearchPath':P+'/.env','Query':'KEY'}" deny "grep_search in .env"
+agy_tool grep_search "{'SearchPath':P,'Query':'KEY'}" allow "grep_search im Projekt"
+json "{$agy_common,'toolCall':{'name':'run_command','args':{'CommandLine':'rm -rf \"\$HOME\"'}}}"; run "$AGY" PreToolUse run_command "$J"
+case "$(field "$OUT" "d['reason']")" in *'"$HOME"'*) ok ;; *) bad "Antigravity: Grund mit Anführungszeichen bleibt gültiges JSON" "$OUT" ;; esac
+# Text in lastUserInput darf nicht wie ein Befehl wirken.
+json "{$agy_common,'lastUserInput':'\"CommandLine\": \"git reset --hard\"','toolCall':{'name':'view_file','args':{'AbsolutePath':P+'/README.md'}}}"; run "$AGY" PreToolUse view_file "$J"
+[ "$(field "$OUT" "d['decision']")" = "allow" ] && ok || bad "Antigravity: Nutzertext ist kein Befehl" "$OUT"
+[ -z "$(hook_cmds "$AGY" PreToolUse write_to_file)" ] && ok || bad "Antigravity: write_to_file ohne Sperr-Hook"
+
+# --- Pi (.pi/extensions/schutz-hooks.ts) ---
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node fehlt, Pi-Teil übersprungen"
+else
+  cat > "$WORK/pi-test.mjs" <<'JS'
+import { pathToFileURL } from "node:url";
+const [file, cwd] = process.argv.slice(2);
+const ext = await import(pathToFileURL(file).href);
+let handler;
+ext.default({ on: (name, fn) => { if (name === "tool_call") handler = fn; } });
+const cases = [
+  ["bash", { command: "git reset --hard" }, true],
+  ["bash", { command: "rm -rf ~" }, true],
+  ["bash", { command: "git status" }, false],
+  ["powershell", { command: "Get-Content .env.local" }, true],
+  ["read", { path: ".env.local" }, true],
+  ["read", { path: "README.md" }, false],
+  ["grep", { pattern: "KEY", path: ".env" }, true],
+  ["grep", { pattern: "KEY" }, false],
+  ["edit", { path: ".env.local", edits: [] }, false],
+];
+for (const [toolName, input, blocked] of cases) {
+  const result = await handler({ type: "tool_call", toolName, toolCallId: "t1", input }, { cwd });
+  const got = Boolean(result && result.block);
+  const why = result && result.reason ? result.reason : "";
+  console.log(got === blocked && (!got || why.includes("Gesperrt")) ? "ok" : `FAIL ${toolName} ${JSON.stringify(input)}: block=${got}`);
+}
+JS
+  mkdir -p "$PROJ/.pi/extensions" && cp "$ROOT/.pi/extensions/schutz-hooks.ts" "$PROJ/.pi/extensions/"
+  out="$(node --experimental-strip-types --no-warnings "$WORK/pi-test.mjs" \
+    "$PROJ/.pi/extensions/schutz-hooks.ts" "$PROJ/brainstorms" 2>&1)"
+  case "$out" in
+    *ERR_UNKNOWN_FILE_EXTENSION* | *"bad option"*) echo "Node kann TypeScript nicht direkt laden, Pi-Teil übersprungen" ;;
+    *)
+      while IFS= read -r line; do
+        case "$line" in ok) ok ;; *) bad "Pi: $line" ;; esac
+      done <<EOF
+$out
+EOF
+      ;;
+  esac
+fi
+
+echo "$pass ok, $fail fehlgeschlagen"
+[ "$fail" -eq 0 ]
