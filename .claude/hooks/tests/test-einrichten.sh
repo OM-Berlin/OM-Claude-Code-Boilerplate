@@ -62,5 +62,50 @@ git -C "$WORK/eigen" init -q && git -C "$WORK/eigen" add -A && git -C "$WORK/eig
 lauf eigen
 [ "$(git -C "$WORK/eigen" log --format=%s | head -1)" = "eigen" ] && ok || bad "eigene Geschichte bleibt"
 
+# 6. Version von Claude Code: ab 2.1.324 gilt der feste Stand der Skills von Matt Pocock.
+# Ein falsches `claude` im PATH liefert die Versionszeile; ohne `claude` (Desktop-App) kommt
+# kein Hinweis. Das Skript darf in keinem Fall abbrechen.
+claude_lauf() { # claude_lauf <name> <ausgabe oder "-" für keinen claude> [fehler]
+  local d="$WORK/cl-$1" bin="$WORK/bin-$1"
+  mkdir -p "$d" "$bin"
+  cp "$ROOT/einrichten.sh" "$ROOT/.env.example" "$ROOT/.gitignore" "$d/"
+  git -C "$d" init -q && git -C "$d" add -A && git -C "$d" commit -q -m eigen
+  if [ "$2" != "-" ]; then
+    printf '#!/bin/sh\n[ -n "%s" ] && echo "%s"\nexit %s\n' "$2" "$2" "${3:-0}" > "$bin/claude"
+    chmod +x "$bin/claude"
+  fi
+  (cd "$d" && PATH="$bin:$PATH" bash einrichten.sh >"$WORK/cl-$1.out" 2>&1)
+  CL_RC=$?
+}
+claude_lauf alt "2.1.300 (Claude Code)"
+[ "$CL_RC" = 0 ] && grep -q "claude update" "$WORK/cl-alt.out" && grep -q "2.1.300" "$WORK/cl-alt.out" && grep -q "grilling" "$WORK/cl-alt.out" \
+  && ok || bad "zu alte Version: Warnung mit claude update, Version und grilling fehlt"
+grep -q "Fertig" "$WORK/cl-alt.out" && ok || bad "zu alte Version: Skript muss bis zum Ende laufen"
+claude_lauf knapp "2.1.323 (Claude Code)"
+grep -q "claude update" "$WORK/cl-knapp.out" && ok || bad "2.1.323 ist zu alt"
+claude_lauf genau "2.1.324 (Claude Code)"
+grep -q "claude update" "$WORK/cl-genau.out" && bad "2.1.324 reicht, keine Warnung" || ok
+claude_lauf neuer "2.1.1000 (Claude Code)"
+grep -q "claude update" "$WORK/cl-neuer.out" && bad "2.1.1000 ist neuer als 2.1.324, keine Warnung" || ok
+claude_lauf major "3.0.0 (Claude Code)"
+grep -q "claude update" "$WORK/cl-major.out" && bad "3.0.0 reicht, keine Warnung" || ok
+claude_lauf unlesbar "Das ist keine Version"
+[ "$CL_RC" = 0 ] && grep -q "claude update" "$WORK/cl-unlesbar.out" && grep -q "nicht lesen" "$WORK/cl-unlesbar.out" \
+  && ok || bad "unlesbare Version: Warnung mit claude update fehlt oder Abbruch"
+claude_lauf kaputt "" 1
+[ "$CL_RC" = 0 ] && grep -q "claude update" "$WORK/cl-kaputt.out" && ok || bad "claude --version scheitert: Warnung statt Abbruch"
+claude_lauf keiner -
+grep -q "claude update" "$WORK/cl-keiner.out" && bad "ohne claude-Befehl keine Warnung" || ok
+grep -q "Fertig" "$WORK/cl-keiner.out" && ok || bad "ohne claude-Befehl: Skript muss bis zum Ende laufen"
+
+# 7. einrichten.ps1 (nicht ausführbar ohne PowerShell): gleiche Mindestversion und gleicher Rat.
+grep -q "2.1.324" "$ROOT/einrichten.ps1" && grep -q "claude update" "$ROOT/einrichten.ps1" \
+  && ok || bad "einrichten.ps1 prüft die Version von Claude Code nicht"
+# Die README sagt, dass die Einrichtung die Hooks prüft: auch unter Windows, über Git Bash.
+grep -q "run-all.sh" "$ROOT/einrichten.ps1" && grep -q "Git Bash" "$ROOT/einrichten.ps1" \
+  && ok || bad "einrichten.ps1 startet die Hook-Tests nicht über Git Bash"
+[ "$(head -c 3 "$ROOT/einrichten.ps1" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ] \
+  && ok || bad "einrichten.ps1 braucht die BOM am Anfang (sonst liest Windows PowerShell 5.1 die Umlaute falsch)"
+
 echo "$pass ok, $fail fehlgeschlagen"
 [ "$fail" -eq 0 ]

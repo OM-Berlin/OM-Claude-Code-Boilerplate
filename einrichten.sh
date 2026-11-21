@@ -10,6 +10,8 @@
 #   3. Git beginnt eine eigene Geschichte für dieses Projekt (erster Commit)
 #   4. es wird geprüft, dass .env.local nie hochgeladen wird
 #   5. die Hooks werden mit ihren Tests geprüft (wenn Python 3 da ist)
+#   Danach prüft das Skript noch, ob Ihr Claude Code neu genug für die Skills von
+#   Matt Pocock ist (ab 2.1.324), und warnt sonst; abgebrochen wird deshalb nicht.
 #
 # Globale Einstellungen auf Ihrem Rechner fasst das Skript nicht an.
 # Läuft gefahrlos mehrfach: Vorhandenes wird nicht überschrieben.
@@ -91,6 +93,29 @@ elif . .claude/hooks/find-python.sh 2>/dev/null && find_python; then
   fi
 else
   echo "  [5/5] Hook-Tests übersprungen, weil Python 3 fehlt (gesucht: python3, python, py -3). Die Handoff-Hooks bleiben dann still."
+fi
+
+# Hinweis: Der feste Stand der Skills von Matt Pocock (.claude/settings.json, Feld ref)
+# braucht Claude Code ab 2.1.324. Bei einer älteren Version fehlt der Skill grilling.
+# Die Desktop-App hat keinen Befehl claude und aktualisiert sich selbst: dann kein Hinweis.
+MIN_CLAUDE="2.1.324"
+version_zahl() { # "2.1.324" -> 2001324, damit sich Versionen vergleichen lassen
+  local a b c
+  IFS=. read -r a b c <<<"$1"
+  echo $((10#${a:-0} * 1000000 + 10#${b:-0} * 1000 + 10#${c:-0}))
+}
+if command -v claude >/dev/null 2>&1; then
+  claude_version="$(claude --version 2>/dev/null | head -n 1 | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
+  echo
+  if [ -z "$claude_version" ]; then
+    echo "HINWEIS: Die Version von Claude Code ließ sich nicht lesen. Die Skills von Matt Pocock"
+    echo "(zum Beispiel grilling) brauchen Version $MIN_CLAUDE oder neuer. Geben Sie 'claude update'"
+    echo "ein und starten Sie Claude Code danach neu."
+  elif [ "$(version_zahl "$claude_version")" -lt "$(version_zahl "$MIN_CLAUDE")" ]; then
+    echo "HINWEIS: Ihr Claude Code hat die Version $claude_version. Die Skills von Matt Pocock"
+    echo "(zum Beispiel grilling) brauchen $MIN_CLAUDE oder neuer, sonst wird der Skill grilling nicht"
+    echo "angeboten. Geben Sie 'claude update' ein und starten Sie Claude Code danach neu."
+  fi
 fi
 
 echo
