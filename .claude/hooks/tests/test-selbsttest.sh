@@ -39,7 +39,18 @@ kit "$WORK/crlf"
 sed 's/$/\r/' "$ROOT/.claude/hooks/block-dangerous-commands.sh" > "$WORK/crlf/.claude/hooks/block-dangerous-commands.sh"
 lauf "$WORK/crlf"
 [ "$RC" = 1 ] && ok || bad "CRLF: Exitcode $RC statt 1" "$OUT"
-case "$OUT" in *"block-dangerous-commands.sh hat Windows-Zeilenenden"*"sed -i"*) ok ;; *) bad "CRLF: Datei und Abhilfe fehlen" "$OUT" ;; esac
+case "$OUT" in *"block-dangerous-commands.sh hat Windows-Zeilenenden"*"perl -pi"*) ok ;; *) bad "CRLF: Datei und Abhilfe fehlen" "$OUT" ;; esac
+
+# 3b. Alles mit CRLF, auch der Selbsttest: Er läuft trotzdem und nennt die Abhilfe,
+# und die Abhilfe repariert das Paket wirklich.
+kit "$WORK/alles-crlf"
+find "$WORK/alles-crlf" -name '*.sh' -exec perl -pi -e 's/\n/\r\n/' {} +
+lauf "$WORK/alles-crlf"
+[ "$RC" = 1 ] && ok || bad "alles CRLF: Exitcode $RC statt 1" "$OUT"
+case "$OUT" in *"selbsttest.sh hat Windows-Zeilenenden"*"Ergebnis:"*) ok ;; *) bad "alles CRLF: Selbsttest muss trotzdem bis zum Ergebnis laufen" "$OUT" ;; esac
+fix="$(printf '%s\n' "$OUT" | sed -n 's/^ *Abhilfe in Git Bash: //p' | head -n 1)"
+[ -n "$fix" ] && (cd "$WORK/alles-crlf" && eval "$fix") && lauf "$WORK/alles-crlf"
+[ "$RC" = 0 ] && ok || bad "alles CRLF: nach der Abhilfe muss der Selbsttest grün sein" "$fix / $OUT"
 
 # 4. Ein Hook, der nichts sperrt.
 kit "$WORK/kaputt"

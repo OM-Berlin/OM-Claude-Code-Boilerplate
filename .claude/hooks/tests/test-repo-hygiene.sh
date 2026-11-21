@@ -47,7 +47,7 @@ scripts="$(find . \( -name .git -o -name node_modules -o -name dist \) -prune -o
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   if grep -q "$(printf '\r')" "$f"; then
-    bad "$f hat CRLF-Zeilenenden" "Mit 'sed -i.bak \"s/\\r\$//\" $f' (oder im Editor auf LF umstellen) beheben."
+    bad "$f hat CRLF-Zeilenenden" "Mit 'perl -pi -e \"s/\\r\$//\" $f' (oder im Editor auf LF umstellen) beheben; sed versteht \\r auf macOS nicht."
   else
     ok
   fi

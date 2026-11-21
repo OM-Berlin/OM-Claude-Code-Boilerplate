@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Hat diese Datei selbst Windows-Zeilenenden (CRLF), läuft sie ohne sie noch einmal. Die Zeile endet mit #, damit ein \r dahinter nur Kommentar ist.
+if grep -q "$(printf '\r')" "$0" 2>/dev/null; then tr -d '\r' <"$0" | SELBSTTEST_DIR="$(dirname "$0")" bash -s; exit $?; fi #
 # =========================================================================
 # selbsttest.sh: prüft in wenigen Sekunden, ob die Hooks auf diesem Rechner laufen.
 #
@@ -14,7 +16,7 @@
 # bash 3.2 kompatibel (macOS), läuft auch unter Git Bash (Windows).
 # =========================================================================
 set -u
-cd "$(dirname "$0")" || exit 1
+cd "${SELBSTTEST_DIR:-$(dirname "$0")}" || exit 1
 HOOKS=".claude/hooks"
 probleme=0
 TMP_SELBST="$(mktemp -d 2>/dev/null || echo "${TMPDIR:-/tmp}/selbsttest-$$")"
@@ -77,16 +79,20 @@ fi
 echo
 
 echo "Zeilenenden und Dateien:"
-crlf=0
+crlf=""
 for f in "$HOOKS"/*.sh "$HOOKS"/tests/*.sh einrichten.sh selbsttest.sh; do
   [ -f "$f" ] || continue
   if grep -q "$(printf '\r')" "$f"; then
-    crlf=1
-    fehler "$f hat Windows-Zeilenenden (CRLF). So läuft das Skript nicht." \
-      "Beheben in Git Bash: sed -i.bak 's/\\r\$//' $f && rm $f.bak"
+    crlf="$crlf $f"
+    fehler "$f hat Windows-Zeilenenden (CRLF). So läuft das Skript nicht."
   fi
 done
-[ "$crlf" = 0 ] && gut "alle Skripte mit LF-Zeilenenden"
+if [ -z "$crlf" ]; then
+  gut "alle Skripte mit LF-Zeilenenden"
+else
+  # perl liegt Git für Windows und macOS bei; sed versteht \r nicht überall.
+  echo "           Abhilfe in Git Bash: perl -pi -e 's/\\r\$//'$crlf"
+fi
 if [ -f .claude/settings.json ] && grep -q "block-dangerous-commands.sh" .claude/settings.json; then
   gut ".claude/settings.json hängt die Hooks ein"
 else
