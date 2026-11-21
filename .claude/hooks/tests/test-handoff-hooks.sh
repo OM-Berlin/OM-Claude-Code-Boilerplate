@@ -260,5 +260,22 @@ reset; out="$(start clear)"
 case "$out" in *"Nur dieser"*) ok ;; *) bad "Einziger Handoff ohne updated darf nicht verschwinden" "$out" ;; esac
 [ -f "$STATE/s1.armed" ] && ok || bad "Handoff ohne updated muss trotzdem armieren"
 
+# Handoff mit Windows-Zeilenenden (CRLF): kein Wagenrücklauf in der Ausgabe, abgeschlossen fällt weg.
+rm -f "$SD"/*.md
+printf -- '---\r\ntopic: Mit CRLF\r\nupdated: 2026-03-04 09:00\r\nstatus: aktiv\r\n---\r\n' > "$SD/2026-03-04-0900-crlf.md"
+printf -- '---\r\ntopic: Fertig CRLF\r\nupdated: 2026-03-05 09:00\r\nstatus: abgeschlossen\r\n---\r\n' > "$SD/2026-03-05-0900-crlf-fertig.md"
+reset; out="$(start clear)"
+case "$out" in *"topic: Mit CRLF · status: aktiv · updated: 2026-03-04 09:00"*) ok ;; *) bad "CRLF-Handoff: Felder ohne Wagenrücklauf" "$out" ;; esac
+case "$out" in *"$(printf '\r')"*) bad "CRLF-Handoff: Ausgabe enthält Wagenrücklauf" ;; *) ok ;; esac
+case "$out" in *"Fertig CRLF"*) bad "CRLF-Handoff: abgeschlossener gehört nicht in die Liste" ;; *) ok ;; esac
+
+# Windows: Python liest eine Pipe in der ANSI-Codepage, Claude Code schickt aber UTF-8.
+# PYTHONIOENCODING=latin-1 stellt das nach; die Hooks müssen trotzdem UTF-8 lesen und schreiben.
+reset; out="$(PYTHONIOENCODING=latin-1 guard 'Lade die Übergabe')"
+case "$out" in *"BRIEFING-MODUS"*"lädt"*) ok ;; *) bad "Umlaut im Prompt bei ANSI-Codepage: Briefing in UTF-8 erwartet" "$out" ;; esac
+reset; : > "$STATE/s1.briefing"
+PYTHONIOENCODING=latin-1 gate Write
+[ "$GATE_RC" = 2 ] && grep -q "könnte" "$WORK/gate.err" && ok || bad "Sperrgrund bei ANSI-Codepage in UTF-8" "$(cat "$WORK/gate.err")"
+
 echo "$pass ok, $fail fehlgeschlagen"
 [ "$fail" -eq 0 ]

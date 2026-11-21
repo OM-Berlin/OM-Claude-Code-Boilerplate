@@ -207,6 +207,50 @@ allowed 'bash -c "rm -rf node_modules"'
 allowed 'bash einrichten.sh'
 allowed 'sh -c "git status"'
 
+# --- Windows: Laufwerk, Benutzerordner und das PowerShell-Werkzeug von Claude Code ---
+blocked 'rm -rf C:\'
+blocked 'rm -rf C:/'
+blocked 'rm -rf /c'
+blocked 'rm -rf /c/'
+blocked 'rm -rf $USERPROFILE'
+blocked 'rm -rf "$env:USERPROFILE"'
+blocked 'rm -rf %USERPROFILE%'
+USERPROFILE='C:\Users\Test' run Bash command 'rm -rf C:\Users\Test'; rc=$?
+[ "$rc" = 2 ] && ok || bad "rm -rf auf den Windows-Benutzerordner muss gesperrt sein (rc=$rc)"
+USERPROFILE='C:\Users\Test' run Bash command 'rm -rf /c/Users/Test/'; rc=$?
+[ "$rc" = 2 ] && ok || bad "rm -rf auf /c/Users/Test/ muss gesperrt sein (rc=$rc)"
+allowed 'rm -rf C:\Users\Test\proj\node_modules'
+allowed 'rm -rf /c/Users/Test/proj/dist'
+ps_blocked() { run PowerShell command "$1"; rc=$?; [ "$rc" = 2 ] && ok || bad "PowerShell muss gesperrt sein (rc=$rc): $1"; }
+ps_allowed() { run PowerShell command "$1"; rc=$?; [ "$rc" = 0 ] && ok || bad "PowerShell muss erlaubt sein (rc=$rc): $1"; }
+ps_blocked 'git reset --hard'
+ps_blocked 'git push --force origin main'
+ps_blocked 'Get-Content .env.local'
+ps_blocked 'gc .env'
+ps_blocked 'type .env.local'
+ps_blocked 'Select-String KEY .env.local'
+ps_blocked 'Remove-Item -Recurse -Force ~'
+ps_blocked 'remove-item -recurse $HOME'
+ps_blocked 'Remove-Item -Recurse -Force $env:USERPROFILE'
+ps_blocked 'rd -r C:\'
+ps_allowed 'Get-ChildItem'
+ps_allowed 'Get-Content README.md'
+ps_allowed 'Remove-Item -Recurse -Force node_modules'
+ps_allowed 'git status'
+
+# Eingehängt für PowerShell: Ohne Git Bash oder mit dem PowerShell-Werkzeug ruft Claude Code
+# unter Windows PowerShell statt Bash; der matcher muss beide Werkzeuge nennen.
+SETTINGS="$(dirname "$(dirname "$HOOK")")/settings.json"
+if [ -f "$SETTINGS" ]; then
+  $PY_CMD - "$SETTINGS" <<'PY' && ok || bad "settings.json: block-dangerous-commands.sh muss für Bash und PowerShell eingehängt sein"
+import json, re, sys
+groups = json.load(open(sys.argv[1], encoding="utf-8"))["hooks"]["PreToolUse"]
+hits = [g.get("matcher", "") for g in groups
+        if any("block-dangerous-commands.sh" in h.get("command", "") for h in g["hooks"])]
+sys.exit(0 if hits and all(re.fullmatch(m, t) for m in hits for t in ("Bash", "PowerShell", "Read", "Grep")) else 1)
+PY
+fi
+
 # --- erlaubt bleiben muss weiterhin ---
 allowed 'rm -rf node_modules'
 allowed 'git push --force-with-lease origin feature'
@@ -224,6 +268,20 @@ OM_SCHUTZ_HOOK=AUS run Bash command 'git reset --hard'; rc=$?
 [ "$rc" = 2 ] && ok || bad "anderer Wert als aus sperrt weiter (rc=$rc)"
 OM_SCHUTZ_HOOK= run Bash command 'git reset --hard'; rc=$?
 [ "$rc" = 2 ] && ok || bad "leerer Wert sperrt weiter (rc=$rc)"
+
+# --- HOOK_AUSGABE=json (Codex unter Windows): Sperre als JSON auf stdout, Exitcode 0 ---
+json_block() { # json_block <befehl>: gültiges JSON mit deny und Grund, Exitcode 0
+  local out rc
+  out="$(TOOL=Bash KEY=command VAL="$1" $PY_CMD -c 'import json,os;print(json.dumps({"tool_name":os.environ["TOOL"],"tool_input":{os.environ["KEY"]:os.environ["VAL"]}}))' \
+    | HOOK_AUSGABE=json bash "$HOOK" 2>/dev/null)"; rc=$?
+  printf '%s' "$out" | $PY_CMD -c 'import json,sys; o=json.load(sys.stdin)["hookSpecificOutput"]; sys.exit(0 if o["permissionDecision"] == "deny" and o["permissionDecisionReason"].startswith("Gesperrt") else 1)' \
+    && [ "$rc" = 0 ] && ok || bad "HOOK_AUSGABE=json muss deny als gültiges JSON melden (rc=$rc): $1" "$out"
+}
+json_block 'git reset --hard'
+json_block 'rm -rf "~/"'
+json_block 'rm -rf C:\'
+out="$(printf '{"tool_name":"Bash","tool_input":{"command":"git status"}}' | HOOK_AUSGABE=json bash "$HOOK")"; rc=$?
+[ "$rc" = 0 ] && [ -z "$out" ] && ok || bad "HOOK_AUSGABE=json: erlaubter Befehl ohne Ausgabe (rc=$rc)" "$out"
 
 # --- Meldung und Robustheit ---
 run Bash command 'git reset --hard'

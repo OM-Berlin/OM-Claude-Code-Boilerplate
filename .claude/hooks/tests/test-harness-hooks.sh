@@ -31,11 +31,13 @@ git -C "$PROJ" init -q -b feature 2>/dev/null || { git -C "$PROJ" init -q && git
 # hook_cmds <hooks.json> <Ereignis> [<Werkzeug>]: die Befehle, die bei diesem Ereignis
 # (und zu diesem Werkzeugnamen passenden matcher) laufen. Versteht beide Formate:
 # Codex {"hooks": {Ereignis: [...]}} und Antigravity {name: {Ereignis: [...]}}.
+# Mit HOOK_FIELD=commandWindows kommt der Befehl, den Codex unter Windows nimmt.
 hook_cmds() {
-  $PY_CMD - "$1" "$2" "${3:-}" <<'PY'
-import json, re, sys
+  HOOK_FIELD="${HOOK_FIELD:-command}" $PY_CMD - "$1" "$2" "${3:-}" <<'PY'
+import json, os, re, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 event, tool = sys.argv[2], sys.argv[3]
+key = os.environ["HOOK_FIELD"]
 blocks = [data["hooks"]] if "hooks" in data else [v for v in data.values() if isinstance(v, dict)]
 for block in blocks:
     if block.get("enabled", True) is False:
@@ -45,7 +47,7 @@ for block in blocks:
         if tool and matcher not in ("", "*") and not re.fullmatch(matcher.strip("^$"), tool):
             continue
         for handler in group.get("hooks", [group]):
-            print(handler["command"])
+            print(handler.get(key, ""))
 PY
 }
 
@@ -58,7 +60,8 @@ run() {
   local cmd
   cmd="$(hook_cmds "$1" "$2" "$3")"
   if [ -z "$cmd" ]; then OUT=""; ERR="kein Hook für $2/$3"; RC=99; return; fi
-  OUT="$(cd "$PROJ" && printf '%s' "$4" | bash -c "$cmd" 2>"$WORK/err")"; RC=$?
+  # RUNNER: die Shell, in der das Programm den Befehl startet (Standard bash -c).
+  OUT="$(cd "$PROJ" && printf '%s' "$4" | ${RUNNER:-bash -c} "$cmd" 2>"$WORK/err")"; RC=$?
   ERR="$(cat "$WORK/err")"
 }
 
@@ -86,6 +89,36 @@ codex_bash 'ls -la' 0
 case "$ERR" in "") ok ;; *) bad "Codex: erlaubter Befehl ohne Meldung" "$ERR" ;; esac
 codex_bash 'git reset --hard' 2
 case "$ERR" in *"Gesperrt vom Hook"*) ok ;; *) bad "Codex: Sperrgrund auf stderr" "$ERR" ;; esac
+
+# --- Codex unter Windows (Feld commandWindows) ---
+# Codex startet Hooks unter Windows mit cmd.exe oder PowerShell, nicht mit bash. Der Befehl
+# in commandWindows darf deshalb nur Zeichen enthalten, die dort nichts bedeuten, und ruft
+# bash über einen Git-Alias auf (git liegt unter Windows im PATH, bash oft nicht).
+# PowerShell macht aus Exitcode 2 eine 1 (Codex-Issue 54072). Deshalb sperrt der Hook dort
+# mit JSON auf stdout (permissionDecision deny) und Exitcode 0, unabhängig von der Shell.
+# Geprüft wird er hier mit bash, mit sh und, falls installiert, mit PowerShell (pwsh).
+win_cmds="$(HOOK_FIELD=commandWindows hook_cmds "$CODEX" SessionStart; HOOK_FIELD=commandWindows hook_cmds "$CODEX" PreToolUse Bash)"
+[ "$(printf '%s\n' "$win_cmds" | grep -c .)" = 2 ] && ok || bad "Codex: commandWindows fehlt bei SessionStart oder PreToolUse" "$win_cmds"
+case "$win_cmds" in *'$'* | *"'"* | *'%'* | *'&'* | *'|'* | *';'* | *'`'*) bad "Codex: commandWindows enthält Zeichen, die cmd.exe oder PowerShell auswerten" "$win_cmds" ;; *) ok ;; esac
+win_runners="bash -c|sh -c"
+command -v pwsh >/dev/null 2>&1 && win_runners="$win_runners|pwsh -NoProfile -NonInteractive -Command"
+IFS='|' read -r -a win_list <<<"$win_runners"
+for RUNNER in "${win_list[@]}"; do
+  json "{$codex_common,'hook_event_name':'SessionStart','source':'startup'}"; HOOK_FIELD=commandWindows run "$CODEX" SessionStart "" "$J"
+  case "$OUT" in *"testthema.md"*"Biete"*) ok ;; *) bad "Codex Windows ($RUNNER) SessionStart zeigt offenen Handoff" "$OUT $ERR" ;; esac
+  for c in 'git reset --hard:deny' 'cat .env.local:deny' 'git status:allow'; do
+    CMD="${c%:*}" json "{$codex_common,'hook_event_name':'PreToolUse','turn_id':'t1','tool_name':'Bash','tool_use_id':'u1','tool_input':{'command':os.environ['CMD']}}"
+    HOOK_FIELD=commandWindows run "$CODEX" PreToolUse Bash "$J"
+    [ "$RC" = 0 ] && ok || bad "Codex Windows ($RUNNER) '${c%:*}': Exitcode $RC statt 0" "$ERR"
+    if [ "${c##*:}" = deny ]; then
+      case "$(field "$OUT" "d['hookSpecificOutput']['permissionDecision'] + ' ' + d['hookSpecificOutput']['permissionDecisionReason']")" in
+        "deny Gesperrt vom Hook"*) ok ;; *) bad "Codex Windows ($RUNNER) '${c%:*}': JSON mit deny erwartet" "$OUT $ERR" ;; esac
+    else
+      [ -z "$OUT" ] && ok || bad "Codex Windows ($RUNNER) '${c%:*}': erlaubt heißt keine Ausgabe" "$OUT"
+    fi
+  done
+done
+unset RUNNER
 
 # --- Antigravity (.agents/hooks.json) ---
 AGY="$PROJ/.agents/hooks.json"
@@ -118,6 +151,23 @@ case "$(field "$OUT" "d['reason']")" in *'"$HOME"'*) ok ;; *) bad "Antigravity: 
 json "{$agy_common,'lastUserInput':'\"CommandLine\": \"git reset --hard\"','toolCall':{'name':'view_file','args':{'AbsolutePath':P+'/README.md'}}}"; run "$AGY" PreToolUse view_file "$J"
 [ "$(field "$OUT" "d['decision']")" = "allow" ] && ok || bad "Antigravity: Nutzertext ist kein Befehl" "$OUT"
 [ -z "$(hook_cmds "$AGY" PreToolUse write_to_file)" ] && ok || bad "Antigravity: write_to_file ohne Sperr-Hook"
+
+# Welche Shell Antigravity unter Windows nimmt, ist nicht dokumentiert. Die Befehle sind
+# deshalb shell-neutral (Git-Alias, keine Zeichen, die cmd.exe oder PowerShell auswerten)
+# und müssen mit sh und, falls installiert, mit PowerShell (pwsh) dasselbe tun.
+agy_cmds="$(hook_cmds "$AGY" SessionStart; hook_cmds "$AGY" PreToolUse run_command)"
+case "$agy_cmds" in *'$'* | *"'"* | *'%'* | *'&'* | *'|'* | *';'* | *'`'*) bad "Antigravity: Befehl enthält Zeichen, die cmd.exe oder PowerShell auswerten" "$agy_cmds" ;; *) ok ;; esac
+agy_runners="sh -c"
+command -v pwsh >/dev/null 2>&1 && agy_runners="$agy_runners|pwsh -NoProfile -NonInteractive -Command"
+IFS='|' read -r -a agy_list <<<"$agy_runners"
+for RUNNER in "${agy_list[@]}"; do
+  json "{$agy_common}"; run "$AGY" SessionStart "" "$J"
+  msg="$(field "$OUT" "d['injectSteps'][0]['systemMessage']['systemMessage']")"
+  case "$msg" in *"testthema.md"*) ok ;; *) bad "Antigravity ($RUNNER) SessionStart" "$OUT $ERR" ;; esac
+  agy_tool run_command "{'CommandLine':'git reset --hard','Cwd':P}" deny "($RUNNER) git reset --hard"
+  agy_tool run_command "{'CommandLine':'ls -la','Cwd':P}" allow "($RUNNER) ls -la"
+done
+unset RUNNER
 
 # JSON-Escapes der Form uXXXX (mit Backslash davor) und \/ dürfen die Sperre nicht
 # umgehen. Das JSON wird hier als Rohtext gebaut, weil Pythons json.dumps ASCII nie
@@ -190,6 +240,25 @@ same(findBash("win32", winEnv({ PATH: "C:\\Windows" }), () => false), undefined,
   const a = resolve(), b = resolve();
   same(`${a}|${b}|${lines.length}`, "undefined|undefined|1", "ohne bash: genau eine Meldung, Aufruf bleibt offen");
   same(/Git Bash/.test(lines[0] || ""), true, "Meldung nennt Git Bash");
+}
+// Windows-Zweig von check(): bash.exe aus Git, Pfad mit Schrägstrichen, Projektordner in
+// CLAUDE_PROJECT_DIR, JSON auf stdin; scheitert der Start, bleibt der Aufruf offen.
+same(ext.hookPath("C:\\Users\\Jürgen Müller\\Lehrgang KI"),
+  "C:/Users/Jürgen Müller/Lehrgang KI/.claude/hooks/block-dangerous-commands.sh", "Windows: Hook-Pfad mit / statt \\");
+{
+  const calls = [];
+  const gitBash = "C:\\Program Files\\Git\\bin\\bash.exe";
+  const spawn = (status, extra = {}) => (cmd, args, opts) => { calls.push({ cmd, args, opts }); return { status, stderr: "Gesperrt vom Hook x\n", ...extra }; };
+  const why = ext.check(cwd, "powershell", { command: "git reset --hard" }, { bash: () => gitBash, spawn: spawn(2) });
+  same(why, "Gesperrt vom Hook x", "Windows: Sperrgrund aus stderr");
+  same(calls[0].cmd, gitBash, "Windows: startet bash.exe aus Git");
+  same(/\\/.test(calls[0].args[0]), false, "Windows: Hook-Pfad ohne Rückwärtsstriche");
+  same(calls[0].opts.env.CLAUDE_PROJECT_DIR, ext.findRoot(cwd), "Windows: Projektordner in CLAUDE_PROJECT_DIR");
+  same(JSON.parse(calls[0].opts.input).tool_name, "Bash", "Windows: PowerShell-Befehl geht als Bash an den Hook");
+  same(ext.check(cwd, "bash", { command: "git status" }, { bash: () => gitBash, spawn: spawn(0) }), undefined, "Windows: Exitcode 0 lässt durch");
+  same(ext.check(cwd, "bash", { command: "git reset --hard" }, { bash: () => gitBash, spawn: spawn(null, { error: new Error("ENOENT") }) }),
+    undefined, "Windows: bash startet nicht, Aufruf bleibt offen");
+  same(ext.check(cwd, "bash", { command: "git reset --hard" }, { bash: () => undefined, spawn: spawn(2) }), undefined, "ohne bash kein Start");
 }
 for (const [toolName, input, blocked] of cases) {
   const result = await handler({ type: "tool_call", toolName, toolCallId: "t1", input }, { cwd });

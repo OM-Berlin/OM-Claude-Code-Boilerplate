@@ -3,7 +3,7 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.claude/hooks/antigravity-adapter.sh\" session-start",
+        "command": "git -c \"alias.om-hook=!bash .claude/hooks/antigravity-adapter.sh session-start\" om-hook",
         "timeout": 10
       }
     ]
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.claude/hooks/antigravity-adapter.sh\" pre-tool",
+            "command": "git -c \"alias.om-hook=!bash .claude/hooks/antigravity-adapter.sh pre-tool\" om-hook",
             "timeout": 10
           }
         ]

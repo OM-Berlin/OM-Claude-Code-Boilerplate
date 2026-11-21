@@ -6,7 +6,7 @@
 // Sie braucht keine Pakete, nur Node und bash. Unter Windows sucht sie Git Bash an den
 // üblichen Orten (Program Files, Benutzerordner, neben git) und nimmt nie das bash von
 // WSL. Fehlt bash oder der Hook, lässt sie alles durch und meldet das einmal auf stderr:
-// Sie ist eine Bremse, keine Sicherheitsgrenze. Unter Windows ist sie ungetestet.
+// Sie ist eine Bremse, keine Sicherheitsgrenze. Unter Windows nur mit Attrappen geprüft.
 // Tests: bash .claude/hooks/tests/test-harness-hooks.sh
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -88,16 +88,22 @@ export function findRoot(start: string): string | undefined {
   }
 }
 
+// Pfad zum Hook. Git Bash versteht C:/Pfad mit Schrägstrichen sicherer als Rückwärtsstriche.
+export function hookPath(root: string): string {
+  return join(root, HOOK).replace(/\\/g, "/");
+}
+
+// Austauschbar nur für die Tests (Windows-Zweig ohne Windows prüfen).
+type Deps = { bash?: () => string | undefined; spawn?: typeof spawnSync };
+
 // Gibt den Grund zurück, wenn der Hook sperrt, sonst undefined.
-export function check(cwd: string, toolName: string, input: Record<string, unknown>): string | undefined {
+export function check(cwd: string, toolName: string, input: Record<string, unknown>, deps: Deps = {}): string | undefined {
   const payload = claudePayload(toolName, input);
   const root = payload ? findRoot(cwd) : undefined;
   if (!payload || !root) return undefined;
-  const bash = resolveBash();
+  const bash = (deps.bash ?? resolveBash)();
   if (!bash) return undefined;
-  // Git Bash versteht C:/Pfad mit Schrägstrichen sicherer als Rückwärtsstriche.
-  const hookPath = join(root, HOOK).replace(/\\/g, "/");
-  const run = spawnSync(bash, [hookPath], {
+  const run = (deps.spawn ?? spawnSync)(bash, [hookPath(root)], {
     input: payload,
     encoding: "utf8",
     timeout: 10000,

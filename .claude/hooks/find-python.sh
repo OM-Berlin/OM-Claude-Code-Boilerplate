@@ -12,6 +12,10 @@
 # Findet es nichts, bleibt PY_CMD leer und der Rückgabewert ist 1. Aufruf immer
 # ohne Anführungszeichen: $PY_CMD -c '...' (bei "py -3" sind das zwei Wörter).
 #
+# Findet es Python, setzt es außerdem PYTHONUTF8=1 und PYTHONIOENCODING=utf-8. Grund:
+# Unter Windows liest Python eine Pipe sonst in der ANSI-Codepage (etwa cp1252), Claude
+# Code schickt aber UTF-8; Umlaute kämen dann verstümmelt an und wieder heraus.
+#
 # Tests: bash .claude/hooks/tests/test-python-fallback.sh
 # bash 3.2 kompatibel (macOS).
 find_python() {
@@ -21,6 +25,7 @@ find_python() {
     # Absichtlich ohne Anführungszeichen: "py -3" muss in zwei Wörter zerfallen.
     if $candidate -c 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)' >/dev/null 2>&1 </dev/null; then
       PY_CMD="$candidate"
+      export PYTHONUTF8=1 PYTHONIOENCODING=utf-8
       return 0
     fi
   done

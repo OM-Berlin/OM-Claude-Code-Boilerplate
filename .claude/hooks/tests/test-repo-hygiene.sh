@@ -14,6 +14,33 @@ bad() { fail=$((fail + 1)); echo "FAIL: $1"; [ -n "${2:-}" ] && echo "      $2";
 grep -qE '^\*\.sh[[:space:]]+text[[:space:]]+eol=lf' .gitattributes 2>/dev/null \
   && ok || bad ".gitattributes muss '*.sh text eol=lf' enthalten" "Sonst bekommen die Skripte unter Windows CRLF-Zeilenenden."
 
+# .gitattributes wirkt wie unter Git für Windows (core.autocrlf=true, die Vorgabe des
+# Installers): Beim Einchecken keine Warnflut, beim Auschecken bleiben .sh und alle
+# anderen Textdateien bei LF, nur .ps1 bekommt CRLF (Windows PowerShell 5.1).
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+GA="$WORK/ga"
+mkdir -p "$GA/sub"
+cp .gitattributes "$GA/"
+printf 'echo a\necho b\n' > "$GA/sub/a.sh"
+printf '{\n  "a": 1\n}\n' > "$GA/b.json"
+printf '# Notiz\n\nText\n' > "$GA/c.md"
+printf 'Write-Host "a"\r\nWrite-Host "b"\r\n' > "$GA/d.ps1"
+lf_cr() { # lf_cr <datei>: "crlf", wenn ein Wagenrücklauf drinsteht, sonst "lf"
+  if grep -q "$(printf '\r')" "$1"; then echo crlf; else echo lf; fi
+}
+(
+  cd "$GA" && git init -q && git config core.autocrlf true &&
+    git add -A 2>"$WORK/add.err" &&
+    git -c user.name=T -c user.email=t@t.invalid commit -q -m t &&
+    rm -f sub/a.sh b.json c.md d.ps1 && git checkout -q -- .
+) || bad "Testrepo für .gitattributes ließ sich nicht anlegen" "$(cat "$WORK/add.err" 2>/dev/null)"
+grep -q "will be replaced" "$WORK/add.err" && bad "git add warnt bei autocrlf=true über Zeilenenden" "$(head -3 "$WORK/add.err")" || ok
+for f in sub/a.sh b.json c.md; do
+  [ "$(lf_cr "$GA/$f")" = lf ] && ok || bad "$f bekommt bei autocrlf=true CRLF" "In .gitattributes fehlt '* text=auto eol=lf'."
+done
+[ "$(lf_cr "$GA/d.ps1")" = crlf ] && ok || bad ".ps1 muss CRLF bekommen" "In .gitattributes fehlt '*.ps1 text eol=crlf'."
+
 scripts="$(find . \( -name .git -o -name node_modules -o -name dist \) -prune -o -type f -name '*.sh' -print | sort)"
 [ -n "$scripts" ] && ok || bad "keine .sh-Dateien gefunden"
 

@@ -111,7 +111,7 @@ case "${1:-}" in
         exit 0
       fi
       claude="{\"tool_name\":\"$tool\",\"tool_input\":{\"$field\":\"$(json_escape "$DECODED")\"}}"
-      reason="$(printf '%s' "$claude" | CLAUDE_PROJECT_DIR="$root" bash "$HOOKS/block-dangerous-commands.sh" 2>&1 >/dev/null)"
+      reason="$(printf '%s' "$claude" | HOOK_AUSGABE= CLAUDE_PROJECT_DIR="$root" bash "$HOOKS/block-dangerous-commands.sh" 2>&1 >/dev/null)"
       if [ $? -eq 2 ]; then
         printf '{"decision":"deny","reason":"%s"}\n' "$(json_escape "$reason")"
         exit 0

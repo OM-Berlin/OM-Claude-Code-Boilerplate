@@ -2,7 +2,9 @@
 # PreToolUse-Hook: Sperrt eine kleine Liste von Befehlen, die Arbeit von Tagen
 # zerstören oder Schlüssel offenlegen können:
 #
-#   - rm -r oder rm -rf auf / oder auf den eigenen Home-Ordner (~, $HOME)
+#   - rm -r oder rm -rf auf / oder auf den eigenen Home-Ordner (~, $HOME), unter Windows
+#     auch auf ein Laufwerk (C:\, /c) oder den Benutzerordner (%USERPROFILE%), ebenso
+#     Remove-Item -Recurse und seine Kurznamen (ri, rd, rmdir, del, erase)
 #   - git push --force (oder -f, +main) auf main oder master
 #   - git reset --hard, git clean -f sowie git checkout . und git restore . (verwerfen
 #     alle ungesicherten Änderungen; einzelne Dateien und Branch-Wechsel bleiben erlaubt)
@@ -11,7 +13,8 @@
 #     Ordner ohne --exclude, Read-Werkzeug auf .env.local, Grep-Werkzeug mit
 #     glob .env* und so weiter); .env.example bleibt lesbar, dort stehen nur Platzhalter
 #
-# So funktioniert er: Claude Code schickt vor jedem Aufruf von Bash, Read oder Grep
+# So funktioniert er: Claude Code schickt vor jedem Aufruf von Bash, PowerShell (nur
+# Windows), Read oder Grep
 # ein JSON auf stdin. Passt der Befehl zur Liste, endet der Hook mit Exitcode 2.
 # Dann bricht Claude Code den Aufruf ab und zeigt Claude die Meldung von stderr.
 # Claude liest den Grund und sucht einen anderen Weg. Jeder andere Exitcode lässt
@@ -20,6 +23,10 @@
 # Warum ein Hook statt einer Regel: Eine Regel in CLAUDE.md befolgt Claude meistens,
 # ein Hook greift jedes Mal. Er ist eine Bremse gegen Versehen, keine
 # Sicherheitsgrenze: Wer will, kommt mit Umwegen (etwa einem Skript) daran vorbei.
+#
+# JSON statt Exitcode: Mit HOOK_AUSGABE=json meldet der Hook eine Sperre als JSON auf
+# stdout (hookSpecificOutput, permissionDecision deny) und endet mit 0. Das nutzt Codex unter
+# Windows (.codex/hooks.json, commandWindows), weil PowerShell aus Exitcode 2 eine 1 macht.
 #
 # Abschalten: Steht die Umgebungsvariable OM_SCHUTZ_HOOK auf "aus", lässt der Hook alles
 # durch. Jeder andere Wert und kein Wert heißt an. Claude Code setzt sie aus dem Block
@@ -40,14 +47,21 @@ if [ "${OM_SCHUTZ_HOOK:-}" = "aus" ]; then
 fi
 
 BLOCKED_EXIT=2
-READERS=" cat less more head tail bat nl grep egrep fgrep rg sed awk source . xxd od strings base64 cut sort uniq type Get-Content diff cmp vimdiff colordiff "
+# Kleingeschrieben: Befehlsnamen werden vor dem Vergleich klein gemacht (PowerShell kennt keine Großschreibung).
+READERS=" cat less more head tail bat nl grep egrep fgrep rg sed awk source . xxd od strings base64 cut sort uniq type get-content gc select-string sls diff cmp vimdiff colordiff "
 PREFIXES=" sudo env command nohup time exec builtin { "
 
 payload="$(tr '\r\n' '  ')"
 project="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 block() {
-  echo "Gesperrt vom Hook block-dangerous-commands.sh: $1" >&2
+  local reason="Gesperrt vom Hook block-dangerous-commands.sh: $1"
+  echo "$reason" >&2
+  if [ "${HOOK_AUSGABE:-}" = json ]; then
+    reason="$(printf '%s' "$reason" | tr '\t\r\n' '   ' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$reason"
+    exit 0
+  fi
   exit "$BLOCKED_EXIT"
 }
 
@@ -77,13 +91,25 @@ is_env_file() {
 }
 
 is_root_or_home() {
-  local t
+  local t u
   t="$(unquote "$1")"
+  t="${t//\\//}" # Windows-Pfade: \ wird zu /
   case "$t" in
     / | /\* | /. ) return 0 ;;
+    [A-Za-z]: | [A-Za-z]:/ | [A-Za-z]:/\* | /[A-Za-z] | /[A-Za-z]/ | /[A-Za-z]/\*) return 0 ;; # Laufwerk: C:\ oder /c in Git Bash
     '~' | '~/' | '~/*' | '$HOME' | '$HOME/' | '$HOME/*' | '${HOME}' | '${HOME}/' | '${HOME}/*') return 0 ;;
+    '$USERPROFILE' | '$USERPROFILE/' | '${USERPROFILE}' | '$env:USERPROFILE' | '$env:USERPROFILE/' | '$env:HOME' | '%USERPROFILE%' | '%USERPROFILE%/') return 0 ;;
   esac
   [ -n "${HOME:-}" ] && { [ "$t" = "$HOME" ] || [ "$t" = "$HOME/" ] || [ "$t" = "$HOME/*" ]; } && return 0
+  # Windows-Benutzerordner als C:/Users/name oder /c/Users/name, Großschreibung egal.
+  if [ -n "${USERPROFILE:-}" ]; then
+    t="$(printf '%s' "${t%/}" | tr 'A-Z' 'a-z')"
+    t="${t%/\*}"
+    u="$(printf '%s' "${USERPROFILE//\\//}" | tr 'A-Z' 'a-z')"
+    u="${u%/}"
+    [ "$t" = "$u" ] && return 0
+    case "$u" in [a-z]:/*) [ "$t" = "/${u%%:*}/${u#?:/}" ] && return 0 ;; esac
+  fi
   return 1
 }
 
@@ -284,9 +310,12 @@ check_segment() {
   [ "$i" -lt "${#words[@]}" ] || return 0
   cmd="$(unquote "${words[$i]}")"
   cmd="${cmd##*/}" # /bin/rm zählt wie rm
+  cmd="${cmd##*\\}" # C:\Programme\Git\bin\git.exe zählt wie git
+  cmd="${cmd%.[eE][xX][eE]}"
+  case "$cmd" in *[A-Z]*) cmd="$(printf '%s' "$cmd" | tr 'A-Z' 'a-z')" ;; esac # nur dann ein Extra-Prozess
   local rest=("${words[@]:$((i + 1))}")
   case "$cmd" in
-    rm) check_rm ${rest[@]+"${rest[@]}"} ;;
+    rm | remove-item | ri | rd | rmdir | del | erase) check_rm ${rest[@]+"${rest[@]}"} ;;
     git) check_git ${rest[@]+"${rest[@]}"} ;;
     grep | egrep | fgrep) check_grep_recursive ${rest[@]+"${rest[@]}"} ;;
     bash | sh | zsh | dash | ksh) check_shell_c ${rest[@]+"${rest[@]}"} ;;
@@ -321,7 +350,7 @@ case "$tool" in
     is_env_glob "$(json_string glob)" &&
       block ".env-Dateien enthalten Schlüssel und werden nicht durchsucht. Die Namen der Variablen stehen in .env.example."
     ;;
-  Bash)
+  Bash | PowerShell)
     check_string "$(json_string command)"
     ;;
 esac

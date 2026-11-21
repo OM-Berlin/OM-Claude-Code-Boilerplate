@@ -32,7 +32,8 @@ DIR="$ROOT/brainstorms/sessions"
 source_kind="$(printf '%s' "$payload" | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
 case "$source_kind" in resume|compact) exit 0 ;; esac
 
-field() { grep -m1 -E "^$2:" "$1" 2>/dev/null | sed -E "s/^$2:[[:space:]]*//"; }
+# Wagenrücklauf weg: Unter Windows gespeicherte Handoffs haben CRLF-Zeilenenden.
+field() { grep -m1 -E "^$2:" "$1" 2>/dev/null | tr -d '\r' | sed -E "s/^$2:[[:space:]]*//"; }
 
 # Ohne `updated` zählt das Dateidatum. Ein leeres erstes Feld würde beim Einlesen
 # unten verschluckt, der Handoff fiele dann still aus der Liste.

@@ -38,7 +38,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Read|Grep",
+        "matcher": "Bash|PowerShell|Read|Grep",
         "hooks": [
           {
             "type": "command",
