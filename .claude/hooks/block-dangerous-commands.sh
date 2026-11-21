@@ -21,6 +21,11 @@
 # ein Hook greift jedes Mal. Er ist eine Bremse gegen Versehen, keine
 # Sicherheitsgrenze: Wer will, kommt mit Umwegen (etwa einem Skript) daran vorbei.
 #
+# Abschalten: Steht die Umgebungsvariable OM_SCHUTZ_HOOK auf "aus", lässt der Hook alles
+# durch. Jeder andere Wert und kein Wert heißt an. Claude Code setzt sie aus dem Block
+# "env" in .claude/settings.json; Codex, Antigravity und Pi erben sie aus der Shell, in der
+# sie gestartet wurden.
+#
 # Selbst testen:
 #   echo '{"tool_name":"Bash","tool_input":{"command":"git reset --hard"}}' \
 #     | bash .claude/hooks/block-dangerous-commands.sh; echo "Exitcode: $?"
@@ -28,6 +33,11 @@
 # Nur bash, sed, grep und tr; läuft auf macOS (bash 3.2) und unter Git Bash auf Windows.
 set -uo pipefail
 set -f # Wörter wie * nicht als Dateinamen auflösen
+
+if [ "${OM_SCHUTZ_HOOK:-}" = "aus" ]; then
+  cat >/dev/null 2>&1 # Eingabe abnehmen, damit der Aufrufer nicht in eine geschlossene Leitung schreibt
+  exit 0
+fi
 
 BLOCKED_EXIT=2
 READERS=" cat less more head tail bat nl grep egrep fgrep rg sed awk source . xxd od strings base64 cut sort uniq type Get-Content diff cmp vimdiff colordiff "

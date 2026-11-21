@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Wächter für die Regeldateien: Er prüft CLAUDE.md, AGENTS.md und README.md im
 # ganzen Projekt und schlägt an, wenn
-#   (a) eine CLAUDE.md zu lang ist (Wurzel: 4000 Zeichen, jede andere: 2500),
+#   (a) eine CLAUDE.md zu lang ist (Wurzel: 4000 Zeichen, jede andere: 2500; eine Zahl
+#       in .claude/hooks/tests/claude-md-budget.txt ersetzt die 4000 für die Wurzel),
 #   (b) neben einer CLAUDE.md die AGENTS.md fehlt, nicht auf CLAUDE.md zeigt oder mehr
 #       als ein Zeiger ist (über 600 Zeichen), oder der AGENTS.md in der Wurzel die
 #       Zeile @[CLAUDE.md](./CLAUDE.md) fehlt, mit der Google Antigravity CLAUDE.md einbindet,
@@ -19,6 +20,11 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 MAX_ROOT=4000
+BUDGET_FILE="$ROOT/.claude/hooks/tests/claude-md-budget.txt"
+if [ -f "$BUDGET_FILE" ]; then
+  MAX_ROOT="$(tr -cd '0-9' < "$BUDGET_FILE")"
+  [ -n "$MAX_ROOT" ] || { echo "FAIL: $BUDGET_FILE enthält keine Zahl"; exit 1; }
+fi
 MAX_OTHER=2500
 MAX_AGENTS=600
 INCLUDE='@[CLAUDE.md](./CLAUDE.md)'

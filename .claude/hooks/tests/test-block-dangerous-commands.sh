@@ -3,6 +3,8 @@
 # Exitcode 2 heißt gesperrt, 0 heißt erlaubt.
 # Lauf: bash .claude/hooks/tests/test-block-dangerous-commands.sh
 set -uo pipefail
+# Der Schalter aus der eigenen Shell darf die Tests nicht abschalten; geprüft wird er unten.
+unset OM_SCHUTZ_HOOK
 
 HOOK="$(cd "$(dirname "$0")/.." && pwd)/block-dangerous-commands.sh"
 
@@ -209,6 +211,19 @@ allowed 'sh -c "git status"'
 allowed 'rm -rf node_modules'
 allowed 'git push --force-with-lease origin feature'
 allowed 'cat .env.example'
+
+# --- Schalter OM_SCHUTZ_HOOK: nur "aus" schaltet ab, Standard ist an ---
+OM_SCHUTZ_HOOK=aus run Bash command 'git reset --hard'; rc=$?
+[ "$rc" = 0 ] && ok || bad "OM_SCHUTZ_HOOK=aus lässt git reset --hard durch (rc=$rc)"
+OM_SCHUTZ_HOOK=aus run Read file_path '.env.local'; rc=$?
+[ "$rc" = 0 ] && ok || bad "OM_SCHUTZ_HOOK=aus lässt Read auf .env.local durch (rc=$rc)"
+[ ! -s "$WORK/err" ] && ok || bad "OM_SCHUTZ_HOOK=aus bleibt still"
+OM_SCHUTZ_HOOK=an run Bash command 'git reset --hard'; rc=$?
+[ "$rc" = 2 ] && ok || bad "OM_SCHUTZ_HOOK=an sperrt (rc=$rc)"
+OM_SCHUTZ_HOOK=AUS run Bash command 'git reset --hard'; rc=$?
+[ "$rc" = 2 ] && ok || bad "anderer Wert als aus sperrt weiter (rc=$rc)"
+OM_SCHUTZ_HOOK= run Bash command 'git reset --hard'; rc=$?
+[ "$rc" = 2 ] && ok || bad "leerer Wert sperrt weiter (rc=$rc)"
 
 # --- Meldung und Robustheit ---
 run Bash command 'git reset --hard'

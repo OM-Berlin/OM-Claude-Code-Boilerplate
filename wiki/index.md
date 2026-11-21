@@ -19,4 +19,4 @@ Der Ordner folgt dem Open Knowledge Format (OKF) in Version 0.3, einem offenen F
 
 ## Seiten
 
-- [Vorlage für neue Seiten](_vorlage.md) - Muster mit allen Kopf-Feldern; kopieren, umbenennen, ausfüllen.
+<!-- Noch keine Seiten. Jede neue Seite bekommt hier eine Zeile. Die Vorlage steht nicht hier, sie ist keine Seite. -->

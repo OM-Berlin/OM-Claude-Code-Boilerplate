@@ -70,7 +70,9 @@ echo '{"tool_name":"Bash","tool_input":{"command":"git reset --hard"}}' \
 
 Das ergibt die Sperrmeldung und `Exitcode: 2`. Mit `git status` statt `git reset --hard` ist der Exitcode 0.
 
-**Alle Tests:** `bash .claude/hooks/tests/run-all.sh`. Jeder Hook hat dort eine eigene Testdatei.
+**Abschalten:** Steht die Umgebungsvariable `OM_SCHUTZ_HOOK` auf `aus`, lässt `block-dangerous-commands.sh` alles durch; im Startpaket ist er an. In Claude Code setzen Sie den Wert in `.claude/settings.json` unter `"env"`, in Codex, Antigravity und Pi nur in der Shell, aus der Sie das Programm starten (`export OM_SCHUTZ_HOOK=aus`).
+
+**Alle Tests:** `bash .claude/hooks/tests/run-all.sh`. Jeder Hook hat dort eine eigene Testdatei. Überspringt sich ein Test, etwa weil Python fehlt, nennt die Zusammenfassung ihn, und die letzte Zeile zählt die übersprungenen Testdateien.
 
 **Wächter für die Regeldateien:** Derselbe Lauf prüft auch `CLAUDE.md`, `AGENTS.md` und `README.md` (Testdatei `test-claude-md-guard.sh`). Er schlägt an, wenn eine `CLAUDE.md` zu lang wird (Wurzel 4000 Zeichen, andere Ordner 2500), neben einer `CLAUDE.md` die `AGENTS.md` fehlt, nicht auf sie zeigt oder eigene Regeln enthält (über 600 Zeichen), der Wurzel-`AGENTS.md` die Zeile für Antigravity fehlt, eine `CLAUDE.md` einen Pfad in Backticks nennt, den es nicht gibt, oder ein ausgemusterter Werkzeugname auftaucht. Jede Meldung sagt, was Sie ändern müssen. So bleibt die Regeldatei kurz und stimmt mit dem Ordner überein.
 
@@ -120,7 +122,7 @@ Die Festlegung greift nur, wenn Claude Code die Sammlung zum ersten Mal einträg
 
 ## Wiki und Obsidian
 
-Das Wiki in `wiki/` folgt dem Open Knowledge Format (OKF) 0.3, einem offenen Format für Wissen aus Markdown-Dateien. Jede Seite beginnt mit einem Kopf zwischen zwei Zeilen `---` (Frontmatter), darin mindestens `type`. `wiki/_vorlage.md` zeigt alle Felder, `wiki/index.md` listet die Seiten, `wiki/log.md` hält die Änderungen fest, das neueste Datum oben. Die Testdatei `test-wiki-okf.sh` prüft das bei jedem Testlauf. Ausführlicher prüft auf Wunsch der Prüfer des OKF-Projekts (`skills/okf-generate/scripts/validate.py` auf github.com/open-knowledge-format/open-knowledge-format); er braucht das Python-Paket PyYAML und liegt nicht im Paket.
+Das Wiki in `wiki/` folgt dem Open Knowledge Format (OKF) 0.3, einem offenen Format für Wissen aus Markdown-Dateien. Jede Seite beginnt mit einem Kopf zwischen zwei Zeilen `---` (Frontmatter), darin mindestens `type`. `wiki/_vorlage.md` zeigt alle Felder (dort steht `type` hinter einem `#`, damit die Vorlage selbst nicht als Seite zählt; in Ihrer Kopie nehmen Sie das `#` weg), `wiki/index.md` listet die Seiten, `wiki/log.md` hält die Änderungen fest, das neueste Datum oben. Die Testdatei `test-wiki-okf.sh` prüft das bei jedem Testlauf. Ausführlicher prüft auf Wunsch der Prüfer des OKF-Projekts (`skills/okf-generate/scripts/validate.py` auf github.com/open-knowledge-format/open-knowledge-format); er braucht das Python-Paket PyYAML und liegt nicht im Paket.
 
 Sie können den ganzen Ordner in Obsidian als Vault (Notizsammlung) öffnen. Die Datei `.obsidian/app.json` sorgt dafür, dass Obsidian normale Markdown-Links mit relativem Pfad schreibt statt Wikilinks mit doppelten eckigen Klammern, die andere Programme nicht verstehen. Für Agenten, die mit Obsidian-Dateien arbeiten sollen, gibt es offizielle Skills auf github.com/obsidianmd/obsidian-skills; sie sind nicht installiert.
 

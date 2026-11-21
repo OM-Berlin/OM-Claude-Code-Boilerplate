@@ -5,6 +5,8 @@
 # .pi/extensions/schutz-hooks.ts (nur wenn Node TypeScript direkt laden kann).
 # Lauf: bash .claude/hooks/tests/test-harness-hooks.sh
 set -uo pipefail
+# Der Schalter aus der eigenen Shell darf die Tests nicht abschalten.
+unset OM_SCHUTZ_HOOK
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 . "$ROOT/.claude/hooks/find-python.sh"

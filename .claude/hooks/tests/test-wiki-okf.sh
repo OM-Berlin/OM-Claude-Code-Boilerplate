@@ -6,8 +6,11 @@
 #   (c) eine Seite in keinem index.md verlinkt ist,
 #   (d) irgendwo ein Wikilink mit doppelten eckigen Klammern steht,
 #   (e) wiki/log.md fehlt, einen Kopf hat, eine Überschrift "## " ohne Datum
-#       JJJJ-MM-TT enthält oder ein älteres Datum über einem neueren steht.
+#       JJJJ-MM-TT enthält oder ein älteres Datum über einem neueren steht,
+#   (f) die Vorlage _vorlage.md ein `type` trägt. Sie ist ein Muster, keine Seite: Ohne
+#       `type` zählt sie laut OKF 0.3 nicht als Seite und muss in keinem index.md stehen.
 # Dateien und Ordner, die mit einem Punkt beginnen, gehören laut OKF nicht dazu.
+# Geprüft werden nur Markdown-Dateien; Anhänge wie Bilder in wiki/anhaenge/ zählen nicht.
 # Der zweite Teil prüft die Prüfung selbst mit absichtlich kaputten Mustern.
 # Optional und ausführlicher: der Prüfer aus dem OKF-Projekt (README, Abschnitt Wiki).
 # Lauf: bash .claude/hooks/tests/test-wiki-okf.sh
@@ -70,6 +73,11 @@ check_wiki() {
       done
     fi
     case "$base" in
+      _vorlage.md)
+        [ "$rc" -eq 0 ] && [ -n "$(value "$head" type)" ] &&
+          echo "$rel ist ein Muster und trägt kein type, sonst zählt es als Seite. Setzen Sie ein # vor die Zeile type."
+        continue
+        ;;
       index.md)
         [ "$dir" != "$wiki" ] && [ "$rc" -ne 1 ] &&
           echo "$rel: Ein index.md in einem Unterordner hat keinen Kopf. Nehmen Sie ihn heraus."
@@ -91,7 +99,7 @@ check_wiki() {
         ;;
     esac
     if [ "$rc" -ne 0 ] || [ -z "$(value "$head" type)" ]; then
-      echo "$rel hat keinen Kopf mit type. Kopieren Sie den Kopf aus wiki/_vorlage.md."
+      echo "$rel hat keinen Kopf mit type. Kopieren Sie den Kopf aus wiki/_vorlage.md und nehmen Sie das # vor type weg."
     fi
     listed=0
     index_links "$index" | grep -qxF -e "$rel" -e "/$rel" && listed=1
@@ -122,6 +130,8 @@ clean_fx() {
   printf -- '---\ntype: Ablauf\n---\n\nText.\n' > "$fx/teil/b.md"
   printf -- '# Unterordner\n\n- [B](b.md) - b\n' > "$fx/teil/index.md"
   printf -- 'ohne Kopf, aber versteckt\n[[egal]]\n' > "$fx/.obsidian/notiz.md"
+  printf -- '---\n# type: Begriff\ntitle: Vorlage\nstatus: draft\n---\n\n# Worum es geht\n' > "$fx/_vorlage.md"
+  mkdir -p "$fx/anhaenge"; printf 'PNG' > "$fx/anhaenge/bild.png"; : > "$fx/anhaenge/.gitkeep"
   echo "$fx"
 }
 expect_hit() { # expect_hit <name> <fx> <teil der meldung>
@@ -164,6 +174,10 @@ fx="$(clean_fx)"; printf -- '# Log\n\n## 2026-11-20\n\n## 2026-11-21\n' > "$fx/l
 expect_hit "log.md alt vor neu" "$fx" "2026-11-21 steht unter 2026-11-20"
 fx="$(clean_fx)"; printf -- '---\ntype: Log\n---\n# Log\n' > "$fx/log.md"
 expect_hit "log.md mit Kopf" "$fx" "log.md hat keinen Kopf"
+fx="$(clean_fx)"; printf -- '---\ntype: Vorlage\nstatus: stable\n---\n' > "$fx/_vorlage.md"
+expect_hit "Vorlage mit type" "$fx" "_vorlage.md ist ein Muster und trägt kein type"
+fx="$(clean_fx)"; printf -- '---\n# type: Ablauf\n---\n' > "$fx/teil/_vorlage.md"
+out="$(check_wiki "$fx")"; [ -z "$out" ] && ok || bad "Vorlage im Unterordner ohne type und ohne Index ist sauber" "$out"
 
 echo "$pass ok, $fail fehlgeschlagen"
 [ "$fail" -eq 0 ]

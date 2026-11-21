@@ -1,5 +1,7 @@
 ---
-type: Vorlage
+# Muster, keine Wiki-Seite: Ohne type zählt diese Datei laut OKF 0.3 nicht als Seite.
+# In der Kopie das # vor type wegnehmen und die Art der Seite eintragen.
+# type: Begriff
 title: Vorlage für neue Seiten
 description: Muster für eine Wiki-Seite mit allen Kopf-Feldern; kopieren, umbenennen, ausfüllen.
 tags: [vorlage]
@@ -8,7 +10,7 @@ sources:
     resource: https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md
     title: Open Knowledge Format, Version 0.3
 generated: { by: "team:akademie-dr-obladen", at: "2026-11-21T12:00:00Z" }
-status: stable
+status: draft
 ---
 
 # Worum es geht
@@ -23,7 +25,7 @@ Verweise auf andere Seiten sind normale Markdown-Links, zum Beispiel auf die [Ü
 
 # So füllen Sie den Kopf aus
 
-- `type` (Pflicht): die Art der Seite, frei wählbar, zum Beispiel `Begriff`, `Ablauf`, `Ansprechstelle` oder `Entscheidung`.
+- `type` (Pflicht): die Art der Seite, frei wählbar, zum Beispiel `Begriff`, `Ablauf`, `Ansprechstelle` oder `Entscheidung`. In dieser Vorlage steht die Zeile hinter einem `#`, damit die Vorlage selbst nicht als Seite zählt; in Ihrer Kopie nehmen Sie das `#` weg.
 - `title` und `description`: Name der Seite und ein Satz, worum es geht. Den Satz übernehmen Sie in `index.md`.
 - `tags`: Stichwörter in eckigen Klammern, zum Beispiel `[abfuhr, termine]`.
 - `sources`: je Quelle ein Eintrag mit `id` (kurzer Name für die Fußnote), `resource` (Link oder Pfad) und `title`.

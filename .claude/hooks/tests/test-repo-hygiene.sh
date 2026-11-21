@@ -36,6 +36,8 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   done <<EOF
 $(git ls-files -s -- '*.sh')
 EOF
+else
+  echo "Kein Git-Projekt, Prüfung der Ausführrechte übersprungen"
 fi
 
 echo "$pass ok, $fail fehlgeschlagen"
