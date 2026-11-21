@@ -1,15 +1,10 @@
-# outputs/ — fertige Deliverables
+# outputs/: fertige Ergebnisse
 
-Endprodukte des Projekts: Dokumente, Decks, Reports, Exporte — alles, was an Kunden/Stakeholder geht oder „fertig" ist.
+Was fertig ist und weitergegeben wird: Berichte, exportierte Workflows, Anleitungen.
 
-**Regeln:**
-- ⚠️ `outputs/` wird committed — **vertrauliche Deliverables** nach `outputs/confidential/` (gitignored).
-- Nur Finales — Zwischenstände bleiben in `wiki/` oder `brainstorms/`.
-- Jedes Deliverable hier im Katalog listen (Link + Einzeiler + Datum).
-- Überholte Deliverables nicht löschen, sondern unten als „ersetzt durch …" markieren.
+- Ein Unterordner je Ergebnis und eine Zeile hier: Datum, Name, ein Satz.
+- Vertrauliches gehört nach `outputs/vertraulich/`. Diesen Ordner lädt Git nie hoch.
 
-> Hinweis: `outputs/` ist eine Erweiterung des Karpathy-Musters (raw → wiki → Schema) — für Agentur-Arbeit braucht es eine Deliverables-Schicht.
+## Ergebnisse
 
-## Katalog
-
-*(noch leer — Deliverables hier eintragen)*
+- (noch keine)

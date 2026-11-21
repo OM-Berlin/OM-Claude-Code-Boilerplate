@@ -1,90 +1,191 @@
-# Projekt-Boilerplate für Claude Code
+# Startpaket Claude Code
 
-Die Ordnerstruktur aus dem Kurs „Claude Code Intensiv" der Akademie Dr. Obladen: acht
-Ordner, eine Regeldatei, ein Skill für die Übergabe zwischen Sitzungen und zwei Hooks,
-die sie beim Start wieder hervorholen. Kein App-Code — die Struktur, in der App-Code
-und alles andere entsteht.
+Dieses Startpaket ist ein leerer Projektordner mit allem, was ein gutes KI-Projekt von Anfang an braucht: eine kurze Regeldatei für die KI, eine feste Ordnerordnung, eine Übergabe zwischen Sitzungen und ein paar Schutzschalter. Es gehört zum Lehrgang der Akademie Dr. Obladen (Woche 4, Agentic Coding) und ist für Claude Code gebaut. Codex, Google Antigravity und Pi können es mitbenutzen, mit Lücken; die stehen im Abschnitt „Welches Programm kann was“.
 
-## Ein Befehl
+Es enthält keinen App-Code, keine Zugangsdaten und keine echten Daten. Alles, was Sie bauen, entsteht in diesem Ordner.
+
+## In 10 Minuten startklar
+
+**Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder eines der anderen Programme aus der Tabelle unten, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen. Was unter Windows sonst zu beachten ist, steht im Abschnitt „Windows“.
+
+**Zusätzlich Python 3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Die Hooks suchen es unter den Namen `python3`, `python` und `py -3` und nehmen den ersten, der wirklich läuft und sich als Python 3 meldet. Unter macOS und Linux ist `python3` meist schon da. Unter Windows installieren Sie Python von python.org. Dort heißt das Programm danach in der Regel `python` oder `py`, nicht `python3`; das reicht, es muss nichts umbenannt werden. Der Platzhalter `python3` aus dem Microsoft Store zählt nicht, er verweist nur auf den Store, und die Hooks überspringen ihn. Ob es klappt, zeigt `python --version` oder `py -3 --version` in Git Bash. Ohne Python 3 setzen die beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt die Einrichtung (`einrichten.sh` oder `einrichten.ps1`) die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne Python.
+
+1. **Entpacken.** Entpacken Sie `startpaket-claude-code.zip` und geben Sie dem Ordner einen Namen für Ihr Vorhaben, zum Beispiel `abfuhr-erinnerung`. Legen Sie ihn am besten nicht in einen OneDrive- oder Dropbox-Ordner, weil die Synchronisierung beim Arbeiten stört.
+2. **Terminal im Ordner öffnen.** macOS: Rechtsklick auf den Ordner, dann „Dienste“ und „Neues Terminal beim Ordner“. Windows: im Ordner Rechtsklick, dann „In Terminal öffnen“.
+3. **Einrichten.** Das Skript legt `.env.local` für Ihre Schlüssel an, beginnt eine eigene Git-Geschichte und prüft die Hooks (unter Windows über Git Bash, sofern es an den üblichen Orten liegt; sonst sagt das Skript, dass es die Tests übersprungen hat). Es ändert nichts außerhalb des Ordners.
+   ```bash
+   bash einrichten.sh                                          # macOS und Linux
+   powershell -ExecutionPolicy Bypass -File .\einrichten.ps1   # Windows
+   ```
+4. **Claude Code starten.** Tippen Sie `claude` (oder `codex`). In der Desktop-App wählen Sie stattdessen den Ordner aus. Bestätigen Sie, dass Sie dem Ordner vertrauen; erst dann laufen die Hooks.
+5. **Skills von Matt Pocock installieren.** Claude Code bietet beim ersten Start an, die Skill-Sammlung `mattpocock-skills` zu installieren. Bestätigen Sie das. Kommt keine Frage, geben Sie ein: `/plugin marketplace add mattpocock/skills#4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` und danach `/plugin install mattpocock-skills@mattpocock`. Das braucht Claude Code ab Version 2.1.324 (`claude --version`); warum und was bei einer älteren Version passiert, steht im Abschnitt „Skills von Matt Pocock“. Die Desktop-App aktualisiert sich selbst und hat keinen Befehl `claude --version`; dort müssen Sie nichts prüfen.
+6. **Prüfen.** Geben Sie `/hooks` ein. Dort sollten die fünf Hooks aus dem Abschnitt „Die Hooks“ stehen. Ob sie auf Ihrem Rechner auch laufen, zeigt `bash selbsttest.sh` im Terminal (unter Windows in Git Bash).
+7. **Regeldatei ausfüllen lassen.** Schreiben Sie: „Frag mich mit dem Skill grilling zu meinem Vorhaben aus und füll danach CLAUDE.md aus. Bleib unter 60 Zeilen.“
+
+Danach geht es mit den Übungen in `uebungen/index.md` weiter.
+
+**Ohne Abo:** Laden Sie `CLAUDE.md` und die Dateien aus `uebungen/` in einen KI-Chat hoch und stellen Sie dieselben Fragen. Hooks und Skills gibt es dort nicht, die Übungen funktionieren trotzdem.
+
+## Windows
+
+**Voraussetzungen:** Windows 10 oder 11 und „Git für Windows“ von git-scm.com, installiert mit den vorgeschlagenen Einstellungen. Git für Windows ist hier Pflicht, nicht nur empfohlen: Es bringt Git Bash mit, und Claude Code startet alle Hooks mit Git Bash. Fehlt Git Bash, nimmt Claude Code PowerShell; dann laufen die Hooks nicht, oder Claude Code sperrt sogar jeden Befehl. Python 3 von python.org ist freiwillig. Ohne Python fehlen nur der Prompt-Wächter und die Schreibsperre nach dem Laden eines Handoffs; die Sperre gefährlicher Befehle, die Handoff-Liste und der Formatierer laufen trotzdem.
+
+**Einrichten:**
+
+1. ZIP mit Rechtsklick und „Alle extrahieren“ entpacken, am besten nach `C:\Projekte\` statt in einen OneDrive-Ordner.
+2. Im entpackten Ordner Rechtsklick, dann „In Terminal öffnen“, und eingeben:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\einrichten.ps1
+   ```
+3. Danach im selben Ordner Rechtsklick, dann „Open Git Bash here“, und eingeben: `bash selbsttest.sh`. Die letzte Zeile muss „Ergebnis: alles in Ordnung.“ lauten. Steht dort etwas anderes, kopieren Sie die ganze Ausgabe und schicken Sie sie Ihrer Lehrgangsleitung. Sie enthält Versionen und den Ordnerpfad, aber keine Schlüssel.
+
+**Die drei wahrscheinlichsten Probleme:**
+
+- **PowerShell verweigert das Skript** („Die Ausführung von Skripts ist auf diesem System deaktiviert“ oder eine Warnung zu Dateien aus dem Internet): Nutzen Sie genau den Befehl aus Schritt 2, er erlaubt das Skript nur für diesen einen Lauf. Hilft das nicht, weil Ihre Firma Skripte zentral sperrt, richten Sie in Git Bash ein: `bash einrichten.sh`.
+- **Claude Code meldet „hook error“ oder sperrt jeden Befehl:** Git Bash fehlt oder wird nicht gefunden. Installieren Sie Git für Windows (neu) und starten Sie Claude Code danach neu.
+- **„$'\r': command not found“ oder „pipefail: invalid option name“:** Ein Skript hat Windows-Zeilenenden bekommen, meist durch Kopieren oder einen Editor. `bash selbsttest.sh` nennt die Datei und den Befehl, der sie repariert. Entpacken Sie sonst das ZIP neu.
+
+Läuft ein Hook nicht, fehlt nur sein Schutz; Ihre Dateien bleiben unberührt. Arbeiten Sie dann ohne echte Schlüssel im Ordner, bis der Selbsttest grün ist.
+
+Stand der Prüfung: Das Paket ist auf macOS und in einer Linux-Nachbildung von Git Bash geprüft (bash 5, GNU-Werkzeuge, mit und ohne Python, Pfad mit Leerzeichen und Umlauten, entpacktes ZIP), aber nicht auf einem echten Windows-Rechner.
+
+## Was im Paket steckt
+
+```
+CLAUDE.md            Regeldatei. Claude liest sie bei jedem Start. Vorlage mit Platzhaltern
+AGENTS.md            Zeiger auf CLAUDE.md für Codex, Antigravity und Pi
+README.md            diese Anleitung
+einrichten.sh/.ps1   einmal ausführen nach dem Entpacken
+selbsttest.sh        zeigt, ob die Hooks auf diesem Rechner laufen
+.env.example         Namen möglicher Schlüssel, ohne Werte. Echte Werte nur in .env.local
+.gitignore           was Git nie hochlädt, vor allem Schlüssel
+raw/                 fremdes Material, nur lesen, wird nicht hochgeladen
+wiki/                geprüftes Wissen, das Sie später nachschlagen (Vorlage: _vorlage.md)
+brainstorms/         Überlegungen und Pläne; sessions/ enthält die Übergaben
+decisions/log.md     Entscheidungen mit Datum, nur unten anhängen
+projects/            die eigentliche Arbeit, ein Ordner je Vorhaben
+outputs/             fertige Ergebnisse
+uebungen/            erfundene Übungsdateien für Dienstag und Donnerstag
+.claude/             Einstellungen, Hooks und der Skill session-handoff für Claude Code
+.codex/              Hooks für Codex
+.agents/             der Skill session-handoff für Codex, Antigravity und Pi, Hooks für Antigravity
+.pi/                 Erweiterung für Pi, die gefährliche Befehle sperrt
+.obsidian/           eine Einstellung für Obsidian: normale Markdown-Links
+```
+
+## Die Hooks
+
+Ein Hook ist ein kleines Programm, das Claude Code bei einem bestimmten Ereignis selbst startet, zum Beispiel vor jedem Befehl. Anders als eine Regel in `CLAUDE.md` läuft ein Hook jedes Mal und kann nicht vergessen werden. Alle Hooks liegen in `.claude/hooks/` und sind in `.claude/settings.json` eingehängt.
+
+| Hook | Wann | Was er tut |
+|---|---|---|
+| `block-dangerous-commands.sh` | vor Bash, PowerShell (nur Windows), Read und Grep | Er sperrt `rm -rf` auf `/` oder den Home-Ordner, `git push --force` auf main, `git reset --hard`, `git checkout .` und `git restore .` (beide werfen alle ungesicherten Änderungen weg) sowie das Lesen von `.env`-Dateien, auch mit `diff`, `cmp` oder einem rekursiven `grep` über den ganzen Ordner. Einzelne Dateien (`git restore datei.txt`) und Branch-Wechsel bleiben erlaubt. Unter Windows erkennt er dieselben Befehle auch in der Schreibweise von cmd und PowerShell (`rd /s`, `del /s`, `Remove-Item -Recurse`, `Get-Content`, `Select-String`, `findstr`) und verpackt in `cmd /c` oder `powershell -Command`; einen Befehl mit `-EncodedCommand` sperrt er immer, weil er ihn nicht lesen kann. Dafür endet er mit Exitcode 2; Claude Code bricht den Befehl ab, Claude liest den Grund und sucht einen anderen Weg. Er ist ein Sicherheitsgurt gegen Versehen, keine Sandbox: Wer einen Umweg wählt, etwa ein Skript, liest die Datei trotzdem. |
+| `list-recent-handoffs.sh` | beim Start | Er zeigt die drei neuesten offenen Übergaben aus `brainstorms/sessions/`. So sehen Sie und Claude sofort, wo die letzte Sitzung aufgehört hat. |
+| `handoff-offer-guard.sh` | bei jeder Nachricht | Er erkennt, ob Sie nur einen Handoff laden oder einen echten Auftrag geben. Lädt jemand nur den Handoff, bittet er Claude um ein kurzes Fazit statt um Arbeit. |
+| `handoff-briefing-gate.sh` | vor jedem Werkzeug | Nach dem bloßen Laden eines Handoffs erlaubt er nur Lese-Werkzeuge. Ihre nächste Nachricht hebt die Sperre auf, damit Claude nicht von selbst mit dem „nächsten Schritt“ loslegt. |
+| `format-after-edit.sh` | nach jeder Dateiänderung | Er formatiert die geänderte Datei, wenn das Projekt Prettier (lokal in `node_modules`) oder Ruff (mit `pyproject.toml`) mitbringt. Ohne Formatierer tut er nichts und lädt auch nichts nach. |
+
+**Selbst ausprobieren:**
 
 ```bash
-git clone https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate.git mein-projekt
+echo '{"tool_name":"Bash","tool_input":{"command":"git reset --hard"}}' \
+  | bash .claude/hooks/block-dangerous-commands.sh; echo "Exitcode: $?"
 ```
 
-Danach einmal einrichten — legt `.env.local` an, beginnt die eigene Git-Geschichte und
-prüft, dass Schlüssel nie hochgeladen werden:
+Das ergibt die Sperrmeldung und `Exitcode: 2`. Mit `git status` statt `git reset --hard` ist der Exitcode 0.
 
-```bash
-cd mein-projekt
-bash einrichten.sh               # macOS / Linux
-claude                           # Claude Code starten — oder: codex
-```
+**Abschalten:** Steht die Umgebungsvariable `OM_SCHUTZ_HOOK` auf `aus`, lässt `block-dangerous-commands.sh` alles durch; im Startpaket ist er an. In Claude Code setzen Sie den Wert in `.claude/settings.json` unter `"env"`, in Codex, Antigravity und Pi nur in der Shell, aus der Sie das Programm starten (`export OM_SCHUTZ_HOOK=aus`).
 
-Windows (PowerShell):
+**Alle Tests:** `bash .claude/hooks/tests/run-all.sh`. Jeder Hook hat dort eine eigene Testdatei. Überspringt sich ein Test, etwa weil Python fehlt, nennt die Zusammenfassung ihn, und die letzte Zeile zählt die übersprungenen Testdateien.
 
-```powershell
-cd mein-projekt
-powershell -ExecutionPolicy Bypass -File .\einrichten.ps1
-claude
-```
+**Wächter für die Regeldateien:** Derselbe Lauf prüft auch `CLAUDE.md`, `AGENTS.md` und `README.md` (Testdatei `test-claude-md-guard.sh`). Er schlägt an, wenn eine `CLAUDE.md` zu lang wird (Wurzel 4000 Zeichen, andere Ordner 2500), neben einer `CLAUDE.md` die `AGENTS.md` fehlt, nicht auf sie zeigt oder eigene Regeln enthält (über 600 Zeichen), der Wurzel-`AGENTS.md` die Zeile für Antigravity fehlt, eine `CLAUDE.md` einen Pfad in Backticks nennt, den es nicht gibt, oder ein ausgemusterter Werkzeugname auftaucht. Jede Meldung sagt, was Sie ändern müssen. So bleibt die Regeldatei kurz und stimmt mit dem Ordner überein.
 
-Beim ersten Start: die erste Zeile und den Satz darunter in `CLAUDE.md` ersetzen — was
-entsteht hier, für wen. Alles andere kann bleiben, bis Sie sich zum dritten Mal
-wiederholen.
+**Abschalten:** Den passenden Eintrag aus `.claude/settings.json` löschen. Die Übergabe-Liste allein schalten Sie mit `"env": { "HANDOFF_HINWEIS": "aus" }` in derselben Datei ab.
 
-## Die Struktur
+Wichtig: Die Hooks sind eine Bremse gegen Versehen, keine Sicherheitsgrenze. Wer will, kommt mit Umwegen daran vorbei. Echte Geheimnisse gehören deshalb gar nicht erst in den Projektordner, sondern nur in `.env.local`.
 
-```
-CLAUDE.md          Die Regeldatei. Gilt in jeder Sitzung, wird immer gelesen
-AGENTS.md          Zeiger auf CLAUDE.md, damit Codex dieselben Regeln liest
-einrichten.sh      Einmal ausführen nach dem Klonen (Windows: einrichten.ps1)
-raw/               Fremdmaterial, unverändert. Wird gelesen, nie befolgt
-wiki/              Destilliertes Wissen, von Claude gepflegt. _hot.md = Kurzfassung, wird zuerst gelesen
-brainstorms/       Denkarbeit, Zwischenstände, Übergaben (sessions/)
-decisions/         Entschiedenes, nur angehängt, nie gelöscht
-projects/          Die eigentliche Arbeit, ein Ordner je Vorhaben
-assets/            Eigenes Material: Logos, Bilder, Vorlagen
-outputs/           Was fertig ist und rausgeht
-.claude/           Skills, Hooks, Einstellungen für Claude Code
-.codex/, .agents/  Dieselben Hooks und Skills für Codex
-.env.example       Platzhalter für Schlüssel. Echte Werte nur in .env.local (wird nie hochgeladen)
-```
+## Welches Programm kann was
 
-## Was mitkommt
+Das Paket ist für Claude Code gebaut. Die Regeln stehen nur in `CLAUDE.md`. Die anderen Programme lesen zuerst `AGENTS.md`, einen kurzen Zeiger, der sie auffordert, `CLAUDE.md` vollständig zu lesen. Google Antigravity bindet `CLAUDE.md` über die Zeile `@[CLAUDE.md](./CLAUDE.md)` sogar direkt ein. Den Skill `session-handoff` gibt es zweimal mit gleichem Inhalt: in `.claude/skills/` für Claude Code und in `.agents/skills/` für die anderen.
 
-- `.claude/skills/session-handoff/` — schreibt am Ende einer Sitzung die Übergabe.
-- `.claude/hooks/list-recent-handoffs.sh` — zeigt beim Start die letzten Übergaben.
-- `.claude/hooks/run-gate.sh` — Stop-Hook, nur aktiv wenn `.om/config.json` `"runGate": "an"` hat (Standard: aus). Verhindert, dass Claude Code abgibt, den er nie ausgeführt hat. Nur für Claude Code.
-- `.claude/hooks/handoff-offer-guard.sh` — sorgt dafür, dass Claude nur einmal fragt,
-  ob eine Übergabe geladen werden soll.
-- `.claude/settings.json` — hängt die Hooks ein und schaltet die Skills von Matt Pocock
-  (`grilling`, `to-spec`, `to-tickets`, `tdd`, `code-review`, `implement-spec`, `pr`, `retro`) und `caveman` als Plugins ein.
-  Die Skills von Matt Pocock kommen aus seinem eigenen Marketplace (`mattpocock/skills`), weil der
-  offizielle Marketplace noch eine ältere Version ausliefert.
-- `wiki/okf-cli.py`, `wiki/okf-viz.py` — Suche und Graph über das Wiki, ohne Zusatzsoftware.
-- `.obsidian/` — Grundeinstellung, damit Obsidian den Ordner direkt als Vault öffnet.
+| Programm | Regeln | Skill `session-handoff` | Schutz-Hooks | Geprüft am 21.11.2026 | Hooks unter Windows |
+|---|---|---|---|---|---|
+| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war | in einer Linux-Nachbildung von Git Bash geprüft, nicht auf echtem Windows |
+| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft | eigener Windows-Befehl (`commandWindows`), mit PowerShell 7 nachgestellt; auf Windows ungetestet |
+| Google Antigravity 1.104.0 (IDE) | `CLAUDE.md` über den Zeiger eingebunden | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle, Lesen und Suchen in `.env` | nur mit Testdaten aus der Doku (siehe unten); Hooks nie in einem echten Lauf gesehen | ungetestet, läuft möglicherweise nicht |
+| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt | Suche nach Git Bash mit Attrappen geprüft; auf Windows ungetestet |
 
-## Codex
+Was Sie wissen sollten:
 
-Das Repo funktioniert unverändert mit OpenAI Codex. `AGENTS.md` verweist auf `CLAUDE.md`,
-es gibt also nur eine Regeldatei. `.codex/hooks.json` zeigt beim Start die letzten Übergaben,
-`.agents/skills/session-handoff/` ist der Übergabe-Skill in Codex-Form. Beim ersten Start
-fragt Codex, ob es den Projektordner vertrauen darf; erst dann laufen die Projekt-Hooks.
+- **Nur in Claude Code:** der Prompt-Wächter und die Schreibsperre nach dem Laden eines Handoffs, der Formatierer und die Sperre des Modus ohne Rückfragen.
+- **Codex** startet Hooks aus `.codex/hooks.json` erst, wenn Sie dem Ordner vertrauen und die Hooks mit `/hooks` freigeben.
+- **Antigravity:** Auf dem Testrechner ist Antigravity 1.104.0 installiert (die Entwicklungsumgebung mit dem Starter `agy`). Diese Version kennt noch keine Hooks. Die Hooks für Antigravity sind deshalb nur nach der Dokumentation gebaut (antigravity.google/docs/hooks) und nie in einem echten Lauf gesehen. Es kann sein, dass sie bei Ihnen nicht anspringen. Verlassen Sie sich dort nicht auf die Sperre.
+- **Pi** fragt vor Befehlen nicht nach; es hat kein Berechtigungssystem. Die Erweiterung `.pi/extensions/schutz-hooks.ts` lädt Pi erst, wenn Sie dem Ordner vertrauen (Frage beim Start oder `/trust`). Ohne diese Freigabe läuft Pi ganz ohne Schutz, und auch mit ihr ist die Sperre nur ein Sicherheitsgurt. Jedes Projekt aus diesem Paket hat eine `.env.local`. Halten Sie deshalb echte Schlüssel aus dem Projektordner heraus, solange Sie Pi benutzen, oder nutzen Sie Pi nicht für Projekte mit Schlüsseln.
+- **Windows:** Kein Programm wurde mit diesem Paket auf einem echten Windows-Rechner ausprobiert (Abschnitt „Windows“). Codex und Antigravity starten ihre Hooks dort mit cmd.exe oder PowerShell. Deshalb rufen ihre Befehle bash über einen Git-Alias auf (`git -c "alias.om-hook=!bash ..." om-hook`), der in jeder dieser Shells gleich aussieht. Die Pi-Erweiterung sucht Git Bash selbst und meldet auf stderr, wenn sie keines findet; dann ist ihre Sperre aus.
+- Die **Gemini CLI** ist ein anderes Programm als Antigravity. Sie liest in der getesteten Version 0.19.4 weder `AGENTS.md` noch Skills von selbst und gehört nicht zum Paket.
 
-## Schlüssel
+## Übergaben zwischen Sitzungen
 
-`.env.example` listet nur Platzhalter und wird hochgeladen. Echte Werte kommen in
-`.env.local`, das `einrichten.sh` anlegt und das `.gitignore` von jedem Upload ausschließt.
-Wer das prüfen will: `git check-ignore .env.local` gibt den Dateinamen zurück.
+Am Ende einer Sitzung sagen Sie „Mach einen Handoff“. Der Skill `session-handoff` schreibt dann eine Übergabe nach `brainstorms/sessions/` und zeigt sie im Chat. Danach können Sie `/clear` eingeben oder den Rechner ausschalten. Beim nächsten Start sagen Sie „Lade den neuesten Handoff“: Claude liest ihn, fasst ihn kurz zusammen und wartet auf Ihren Auftrag. Mehr dazu in `brainstorms/sessions/index.md`.
+
+## Skills von Matt Pocock
+
+Aus der Sammlung `mattpocock-skills` nutzt das Paket `grilling`, `diagnosing-bugs`, `tdd` und `code-review`. In `.claude/settings.json` ist die Sammlung mit `ref` auf einen festen Stand gelegt: den Commit `4ae2317`, Version 1.3.2. So ändern sich die Skills während des Lehrgangs nicht von selbst. Claude Code kann einen solchen Commit-Stand erst ab Version 2.1.324 lesen.
+
+**Wenn die Skills fehlen:** Bei einer älteren Version bietet Claude Code die Sammlung nicht an. Sie merken es daran, dass der Skill `grilling` fehlt: Er erscheint nicht in der Liste, die nach der Eingabe von `/` aufgeht, und Schritt 7 aus „In 10 Minuten startklar“ läuft ins Leere. Geben Sie dann im Terminal `claude update` ein, starten Sie Claude Code neu und wiederholen Sie Schritt 5. `einrichten.sh` und `einrichten.ps1` warnen vor einer zu alten Version, wenn sie `claude --version` lesen können. In der Desktop-App gibt es diesen Befehl nicht; sie aktualisiert sich selbst. Starten Sie die App neu und wiederholen Sie Schritt 5.
+
+Die Festlegung greift nur, wenn Claude Code die Sammlung zum ersten Mal einträgt. Wer sie schon früher ohne Festlegung eingetragen hat, behält seinen Stand. Auf einen neueren Stand wechseln Sie so: Suchen Sie auf github.com/mattpocock/skills den Commit der gewünschten Version, tragen Sie seine volle Kennung (40 Zeichen) in `.claude/settings.json` bei `ref` ein, geben Sie in Claude Code `/plugin marketplace remove mattpocock` ein und starten Sie Claude Code neu. Dann bietet es die Installation wieder an.
+
+## CLAUDE.md gesund halten
+
+- **Wächter:** `bash .claude/hooks/tests/run-all.sh` startet auch `test-claude-md-guard.sh` (Abschnitt „Die Hooks“). Lassen Sie den Lauf nach jeder Änderung an `CLAUDE.md` laufen.
+- **`/doctor`** in Claude Code prüft die Einrichtung und schlägt vor, Zeilen aus `CLAUDE.md` zu streichen, die Claude ohnehin aus den Dateien erschließen kann.
+- **`/doctor prompt-audit`** sucht veraltete oder widersprüchliche Anweisungen und Verweise auf Dateien, die es nicht gibt. Es ändert nichts, bevor Sie zustimmen.
+- **`/context`** zeigt, ob `CLAUDE.md` in der Sitzung wirklich geladen ist.
+- **Optional:** Das Plugin `claude-md-management` von Anthropic (`/plugin install claude-md-management@claude-plugins-official`) bringt den Skill `claude-md-improver` und den Befehl `/revise-claude-md` mit. Es ist nicht vorinstalliert.
+
+## Wiki und Obsidian
+
+Das Wiki in `wiki/` folgt dem Open Knowledge Format (OKF) 0.3, einem offenen Format für Wissen aus Markdown-Dateien. Jede Seite beginnt mit einem Kopf zwischen zwei Zeilen `---` (Frontmatter), darin mindestens `type`. `wiki/_vorlage.md` zeigt alle Felder (dort steht `type` hinter einem `#`, damit die Vorlage selbst nicht als Seite zählt; in Ihrer Kopie nehmen Sie das `#` weg), `wiki/index.md` listet die Seiten, `wiki/log.md` hält die Änderungen fest, das neueste Datum oben. Die Testdatei `test-wiki-okf.sh` prüft das bei jedem Testlauf. Ausführlicher prüft auf Wunsch der Prüfer des OKF-Projekts (`skills/okf-generate/scripts/validate.py` auf github.com/open-knowledge-format/open-knowledge-format); er braucht das Python-Paket PyYAML und liegt nicht im Paket.
+
+Sie können den ganzen Ordner in Obsidian als Vault (Notizsammlung) öffnen. Die Datei `.obsidian/app.json` sorgt dafür, dass Obsidian normale Markdown-Links mit relativem Pfad schreibt statt Wikilinks mit doppelten eckigen Klammern, die andere Programme nicht verstehen. Für Agenten, die mit Obsidian-Dateien arbeiten sollen, gibt es offizielle Skills auf github.com/obsidianmd/obsidian-skills; sie sind nicht installiert.
+
+## Best Practices
+
+- **CLAUDE.md kurz halten.** Hinein gehört nur, was Claude nicht selbst aus den Dateien erschließen kann: Wissen über das Projekt, Ihre Vorlieben, Schutzregeln, die wichtigsten Befehle. Jede Zeile kostet in jeder Sitzung Aufmerksamkeit; eine lange Datei befolgt Claude schlechter als eine kurze.
+- **Hooks statt Regeln, wo es prüfbar ist.** Lässt sich eine Regel mechanisch prüfen („nie `.env` lesen“, „Code immer formatieren“), bauen Sie einen Hook. Regeln in `CLAUDE.md` sind für Dinge, die Urteilsvermögen brauchen.
+- **Erst fragen lassen, dann bauen.** Bei einem neuen Vorhaben fragt Sie der Skill `grilling` aus, bis das Ziel klar ist. Für größere Änderungen schalten Sie vorher den Plan-Modus ein (Umschalt und Tab).
+- **Handoff vor `/clear`.** `/clear` leert das Gedächtnis der Sitzung. Schreiben Sie vorher einen Handoff, dann geht nichts verloren.
+- **Prüfen lässt eine frische Sitzung.** Wer etwas gebaut hat, übersieht die eigenen Fehler. Öffnen Sie für die Prüfung eine neue Sitzung ohne Vorgeschichte und lassen Sie dort das Ergebnis prüfen, zum Beispiel mit dem Skill `code-review`.
+- **Zurückspulen statt reparieren.** Ist Claude in eine falsche Richtung gelaufen, springen Sie mit `/rewind` zu einem früheren Stand zurück.
+- **Berechtigungen bewusst wählen.** Im Standard fragt Claude vor jeder Änderung. Mit Umschalt und Tab wechseln Sie zu „Änderungen automatisch annehmen“ oder zum Plan-Modus. Mit `/permissions` sehen und ändern Sie, was Claude ohne Rückfrage darf. Den Modus, der alle Rückfragen abschaltet, sperrt dieses Paket in `.claude/settings.json`.
+- **Schlüssel nur in `.env.local`.** Nie in den Chat, nie in eine andere Datei.
+
+## Welches Modell?
+
+Stand November 2026: Opus als Standard, Fable für die härtesten Aufgaben, Sonnet und Haiku für einfache. Wählen Sie immer die aktuelle Version der jeweiligen Stufe. Das Modell wechseln Sie mit `/model`. Fable verbraucht deutlich mehr von Ihrem Nutzungskontingent; nehmen Sie es nur, wenn Opus nicht weiterkommt.
+
+## Was sich seit September geändert hat
+
+Die erste Fassung dieses Pakets gab es zum Workshop im September 2026. Für den Lehrgang ist sie überarbeitet:
+
+- **Kein Kurzstil-Plugin mehr.** Das Plugin aus der Septemberfassung ließ Claude im Telegrammstil antworten. Stattdessen steht in `CLAUDE.md` eine Sprachregel für klare, vollständige Sätze.
+- **Neue CLAUDE.md.** Sie ist eine Vorlage mit Platzhaltern, deutlich unter 60 Zeilen, mit einem Kommentar, was hinein gehört und was nicht.
+- **Neuer Schutz-Hook** gegen gefährliche Befehle und gegen das Lesen von `.env`-Dateien.
+- **Neuer Formatier-Hook**, der nur arbeitet, wenn das Projekt einen Formatierer hat.
+- **Übergaben sind Briefings, keine Aufträge.** Ein neuer Hook sperrt nach dem bloßen Laden eines Handoffs alle verändernden Werkzeuge, bis Sie antworten. Die Startliste zeigt nur offene Übergaben, die zuletzt bearbeitete zuerst.
+- **Weniger Ballast.** Der Stop-Hook `run-gate`, die Wiki-Werkzeuge und der Ordner `assets/` sind entfallen.
+- **Wiki im offenen Format OKF 0.3** mit Vorlage und Prüfung; Obsidian schreibt normale Markdown-Links.
+- **Übungsdateien** für Dienstag und Donnerstag liegen in `uebungen/`.
+- **Sicherer Standard:** Der Modus ohne Rückfragen ist gesperrt, und `einrichten.sh` prüft die Hooks mit ihren Tests.
+- **Vier Programme:** Codex, Antigravity und Pi lesen dieselben Regeln und denselben Handoff-Skill; die Übergabe-Liste und die Sperre gefährlicher Befehle laufen auch dort (Tabelle oben).
+- **Feste Skill-Version:** Die Skills von Matt Pocock sind auf Version 1.3.2 festgelegt.
+- **Windows:** Eigener Abschnitt mit Einrichtung und den häufigsten Problemen, neuer Selbsttest `selbsttest.sh`, feste LF-Zeilenenden über `.gitattributes`, Sperre auch für das PowerShell-Werkzeug von Claude Code.
 
 ## Woher das kommt
 
-Die Trennung `raw/ → wiki/ → CLAUDE.md` ist Andrej Karpathys
-[LLM-Wiki-Muster](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
-`wiki/` folgt dem
-[Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md).
-`brainstorms/` und `decisions/` folgen [Matt Pococks Skills](https://github.com/mattpocock/skills)
-und Nate Herks Checkpointing. Die Regeln in `CLAUDE.md` folgen den
-[Hinweisen des Herstellers](https://code.claude.com/docs/en/best-practices).
+Die Trennung `raw/` → `wiki/` → `CLAUDE.md` folgt Andrej Karpathys [LLM-Wiki-Muster](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Die Skills `grilling`, `diagnosing-bugs`, `tdd` und `code-review` stammen von [Matt Pocock](https://github.com/mattpocock/skills). Die Hinweise zu Regeldatei und Hooks folgen der [Dokumentation von Claude Code](https://code.claude.com/docs/en/best-practices).
 
-Fragen: do@obladen.media
+## Kontakt
+
+Fragen zum Lehrgang stellen Sie über die Lernplattform oder über [obladen-akademien.de](https://www.obladen-akademien.de).

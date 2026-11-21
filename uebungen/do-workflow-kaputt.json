@@ -1,0 +1,124 @@
+{
+  "name": "Übung Do: Erinnerung an die Biotonne (kaputt)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9953aa7c-2b48-580e-a3f8-30f712771e44",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Testdaten: drei Abfuhrtermine wie aus einer Schnittstelle (erfunden).\nconst termine = [\n  { strasse: 'Lindenweg', tonne: 'Biotonne', datum: '2026-11-27' },\n  { strasse: 'Ahornstraße', tonne: 'Restmüll', datum: '2026-11-25' },\n  { strasse: 'Am Mühlbach', tonne: 'Biotonne', datum: '2026-11-27' },\n];\nreturn termine.map((termin) => ({ json: termin }));"
+      },
+      "id": "61acb504-93a5-561a-9231-18e95cbb0738",
+      "name": "Abfuhrtermine laden",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "d3303b8b-9860-5386-8ac6-93d1e42da6c4",
+              "leftValue": "={{ $json.tonnen }}",
+              "rightValue": "Biotonne",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cfb215a0-951f-5283-b9bc-e486dfb48d0f",
+      "name": "Nur Biotonne",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eb5b8fef-3029-55f2-ade9-7c6bdbc99517",
+              "name": "nachricht",
+              "type": "string",
+              "value": "=Erinnerung: Am {{ $json.datum }} wird im {{ $json.strasse }} die {{ $json.tonne }} geleert."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eb2c9ea9-d995-50b9-b6be-ad09314b6394",
+      "name": "Erinnerung formulieren",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        -100
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Abfuhrtermine laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abfuhrtermine laden": {
+      "main": [
+        [
+          {
+            "node": "Nur Biotonne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur Biotonne": {
+      "main": [
+        [
+          {
+            "node": "Erinnerung formulieren",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

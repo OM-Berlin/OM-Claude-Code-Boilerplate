@@ -1,0 +1,71 @@
+{
+  "quelle": "Abfuhrkalender-Schnittstelle Musterstadt (erfunden, nur zum Üben)",
+  "abgerufen_am": "2026-11-23T08:15:00+01:00",
+  "ort": {
+    "name": "Musterstadt",
+    "plz": "12345",
+    "bezirke_gesamt": 3
+  },
+  "bezirke": [
+    {
+      "bezirk": "Nord",
+      "strassen": [
+        "Lindenweg",
+        "Ahornstraße",
+        "Am Mühlbach"
+      ],
+      "termine": [
+        {
+          "tonne": "Restmüll",
+          "datum": "2026-11-25",
+          "uhrzeit_ab": "06:00"
+        },
+        {
+          "tonne": "Biotonne",
+          "datum": "2026-11-27",
+          "uhrzeit_ab": "06:00"
+        },
+        {
+          "tonne": "Gelbe Tonne",
+          "datum": "2026-12-01",
+          "uhrzeit_ab": null
+        }
+      ]
+    },
+    {
+      "bezirk": "Süd",
+      "strassen": [
+        "Bahnhofstraße",
+        "Kastanienallee"
+      ],
+      "termine": [
+        {
+          "tonne": "Restmüll",
+          "datum": "26.11.2026",
+          "uhrzeit_ab": "06:00"
+        },
+        {
+          "tonne": "Papier",
+          "datum": "2026-11-30",
+          "uhrzeit_ab": ""
+        }
+      ]
+    },
+    {
+      "bezirk": "Gewerbegebiet",
+      "strassen": "Industriestraße",
+      "termine": []
+    }
+  ],
+  "hinweise": [
+    {
+      "typ": "Feiertag",
+      "text": "Wegen eines Feiertags verschieben sich die Termine in Bezirk Süd um einen Tag.",
+      "gilt_bis": "2026-12-31"
+    }
+  ],
+  "seite": {
+    "aktuell": 1,
+    "gesamt": "1"
+  }
+}

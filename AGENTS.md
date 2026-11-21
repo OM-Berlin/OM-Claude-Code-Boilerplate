@@ -1,13 +1,5 @@
 # AGENTS.md
 
-Diese Datei trägt keinen eigenen Inhalt.
+Alle Regeln für diesen Ordner stehen in `CLAUDE.md` im selben Ordner. Lies `CLAUDE.md` vollständig, bevor du irgendetwas anderes tust, und befolge sie so, als stünde sie hier; diese Datei wiederholt die Regeln absichtlich nicht. In Google Antigravity bindet die nächste Zeile `CLAUDE.md` direkt ein.
 
-Alle Regeln für dieses Projekt stehen in **`CLAUDE.md`**. Lies sie zuerst und halte dich
-daran, egal ob du Codex, Claude Code oder ein anderes Werkzeug bist.
-
-<!--
-  Warum ein Zeiger und kein Symlink: Symlinks brauchen unter Windows Administratorrechte
-  und überleben manche Synchronisierung nicht. Der Zeiger tut dasselbe auf jedem System.
-
-  Hier nie Inhalt ergänzen. Sonst gibt es zwei Regeldateien, die auseinanderlaufen.
--->
+@[CLAUDE.md](./CLAUDE.md)

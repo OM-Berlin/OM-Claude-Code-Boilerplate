@@ -1,0 +1,11 @@
+# Zeilenenden sind hier festgelegt, nicht auf dem Rechner. Git für Windows checkt sonst
+# mit core.autocrlf=true (Vorgabe des Installers) alles mit CRLF aus und warnt bei
+# jedem git add. Deshalb: alle Textdateien mit LF, auch unter Windows.
+* text=auto eol=lf
+# Shell-Skripte immer mit LF-Zeilenenden, sonst laufen die Hooks unter Windows nicht.
+*.sh text eol=lf
+# PowerShell-Skripte mit CRLF, wie Windows PowerShell 5.1 sie erwartet.
+*.ps1 text eol=crlf
+
+# Nicht ins Startpaket (scripts/build-zip.sh nutzt git archive):
+scripts/ export-ignore

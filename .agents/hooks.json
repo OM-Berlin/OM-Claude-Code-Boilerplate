@@ -1,0 +1,25 @@
+{
+  "handoff-liste": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "git -c \"alias.om-hook=!bash .claude/hooks/antigravity-adapter.sh session-start\" om-hook",
+        "timeout": 10
+      }
+    ]
+  },
+  "gefaehrliche-befehle": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|view_file|grep_search",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git -c \"alias.om-hook=!bash .claude/hooks/antigravity-adapter.sh pre-tool\" om-hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
