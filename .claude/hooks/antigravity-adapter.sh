@@ -28,6 +28,50 @@ raw_json() {
     sed -E -n 's/.*"'"$1"'"[[:space:]]*:[[:space:]]*"((\\.|[^"\\])*)".*/\1/p' | head -n 1
 }
 
+# JSON-Text zu Klartext, Ergebnis in DECODED. Aufgelöst werden die einfachen Escapes
+# (Anführungszeichen, Backslash, Schrägstrich, n, t, r, b, f) und die Schreibweise
+# mit Backslash, u und vier Hexziffern für ASCII-Zeichen (0001 bis 007F). Jede andere
+# Schreibweise dieser Art lässt sich hier nicht sicher prüfen: Dann ist UNREADABLE=1,
+# und der Aufruf wird abgelehnt. Sonst käme "git reset --hard" als U+0026-Kette
+# unerkannt durch. Im Quelltext steht kein Backslash-u, damit nichts davon selbst
+# als Escape gelesen wird: BS ist ein einzelner Backslash.
+BS='\'
+DECODED=""
+UNREADABLE=0
+json_decode() {
+  local s="$1" out="" pre hex c
+  UNREADABLE=0
+  while [ -n "$s" ]; do
+    pre="${s%%"$BS"*}"
+    out="$out$pre"
+    s="${s#"$pre"}"
+    [ -n "$s" ] || break
+    case "$s" in
+      "$BS"u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+        hex="${s:2:4}"
+        case "$hex" in
+          00[0-7][0-9a-fA-F])
+            if [ "$hex" = "0000" ]; then
+              UNREADABLE=1
+            else
+              printf -v c "${BS}x${hex:2:2}"
+              out="$out$c"
+            fi ;;
+          *) UNREADABLE=1 ;;
+        esac
+        s="${s:6}" ;;
+      "$BS"u*) UNREADABLE=1; s="${s:2}" ;;
+      "$BS$BS"*) out="$out$BS"; s="${s:2}" ;;
+      "$BS\""*) out="$out\""; s="${s:2}" ;;
+      "$BS"/*) out="$out/"; s="${s:2}" ;;
+      "$BS"n*) out="$out"$'\n'; s="${s:2}" ;;
+      "$BS"[trbf]*) out="$out "; s="${s:2}" ;;
+      *) out="$out$BS"; s="${s:1}" ;;
+    esac
+  done
+  DECODED="$out"
+}
+
 # Text als JSON-String (ohne die äußeren Anführungszeichen).
 json_escape() {
   printf '%s' "$1" | tr '\t\r' '  ' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' |
@@ -52,15 +96,21 @@ case "${1:-}" in
     fi
     ;;
   pre-tool)
-    claude=""
+    tool="" field="" key=""
     if [ -n "$(raw_json CommandLine)" ]; then
-      claude="{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"$(raw_json CommandLine)\"}}"
+      tool="Bash"; field="command"; key="CommandLine"
     elif [ -n "$(raw_json AbsolutePath)" ]; then
-      claude="{\"tool_name\":\"Read\",\"tool_input\":{\"file_path\":\"$(raw_json AbsolutePath)\"}}"
+      tool="Read"; field="file_path"; key="AbsolutePath"
     elif [ -n "$(raw_json SearchPath)" ]; then
-      claude="{\"tool_name\":\"Grep\",\"tool_input\":{\"path\":\"$(raw_json SearchPath)\"}}"
+      tool="Grep"; field="path"; key="SearchPath"
     fi
-    if [ -n "$claude" ]; then
+    if [ -n "$key" ]; then
+      json_decode "$(raw_json "$key")"
+      if [ "$UNREADABLE" = 1 ]; then
+        printf '{"decision":"deny","reason":"%s"}\n' "$(json_escape "Gesperrt vom Adapter antigravity-adapter.sh: Der Aufruf enthält eine Unicode-Schreibweise (Backslash, u und vier Ziffern), die sich nicht sicher prüfen lässt. Schreib den Befehl oder den Pfad mit normalen Zeichen.")"
+        exit 0
+      fi
+      claude="{\"tool_name\":\"$tool\",\"tool_input\":{\"$field\":\"$(json_escape "$DECODED")\"}}"
       reason="$(printf '%s' "$claude" | CLAUDE_PROJECT_DIR="$root" bash "$HOOKS/block-dangerous-commands.sh" 2>&1 >/dev/null)"
       if [ $? -eq 2 ]; then
         printf '{"decision":"deny","reason":"%s"}\n' "$(json_escape "$reason")"

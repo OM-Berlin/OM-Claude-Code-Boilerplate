@@ -117,6 +117,30 @@ json "{$agy_common,'lastUserInput':'\"CommandLine\": \"git reset --hard\"','tool
 [ "$(field "$OUT" "d['decision']")" = "allow" ] && ok || bad "Antigravity: Nutzertext ist kein Befehl" "$OUT"
 [ -z "$(hook_cmds "$AGY" PreToolUse write_to_file)" ] && ok || bad "Antigravity: write_to_file ohne Sperr-Hook"
 
+# JSON-Escapes der Form uXXXX (mit Backslash davor) und \/ dürfen die Sperre nicht
+# umgehen. Das JSON wird hier als Rohtext gebaut, weil Pythons json.dumps ASCII nie
+# so schreibt. Im Quelltext steht @u für Backslash plus u.
+agy_raw() { # agy_raw <roher Wert von CommandLine> <allow|deny> <name>
+  local val="${1//@u/\\u}"
+  run "$AGY" PreToolUse run_command '{"conversationId":"x","toolCall":{"name":"run_command","args":{"CommandLine":"'"$val"'","Cwd":"/x"}}}'
+  local decision
+  decision="$(field "$OUT" "d['decision']")"
+  [ "$decision" = "$2" ] && ok || bad "Antigravity $3: '$decision' statt '$2'" "$OUT $ERR"
+}
+agy_raw 'git status @u0026@u0026 git reset --hard' deny "U+0026 statt &&, dann git reset --hard"
+agy_raw 'npm test @u0026@u0026 rm -rf ~' deny "U+0026 statt &&, dann rm -rf ~"
+agy_raw '@u0063at .env.local' deny "U+0063 statt c, dann at .env.local"
+agy_raw 'cat .env@u002elocal' deny "U+002e im Dateinamen"
+agy_raw 'rm -rf \/' deny "rm -rf mit escapetem Schrägstrich"
+agy_raw 'git status @u003b git reset --hard' deny "U+003b statt ;"
+agy_raw 'git push --force origin main' deny "force push im Klartext"
+agy_raw 'ls @u002dla' allow "harmloses U+002d wird zu -"
+agy_raw 'git status' allow "git status im Klartext"
+agy_raw 'echo \\@u0026' allow "doppelter Backslash vor u0026 ist kein &"
+agy_raw 'echo caf@u00e9' deny "nicht lesbares U+00e9"
+case "$(field "$OUT" "d['reason']")" in *"Unicode"*) ok ;; *) bad "Antigravity: Grund nennt die Unicode-Schreibweise" "$OUT" ;; esac
+agy_raw 'echo @u0000' deny "U+0000"
+
 # --- Pi (.pi/extensions/schutz-hooks.ts) ---
 if ! command -v node >/dev/null 2>&1; then
   echo "Node fehlt, Pi-Teil übersprungen"
