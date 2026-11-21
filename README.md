@@ -69,6 +69,8 @@ Das ergibt die Sperrmeldung und `Exitcode: 2`. Mit `git status` statt `git reset
 
 **Alle Tests:** `bash .claude/hooks/tests/run-all.sh`. Jeder Hook hat dort eine eigene Testdatei.
 
+**Wächter für die Regeldateien:** Derselbe Lauf prüft auch `CLAUDE.md`, `AGENTS.md` und `README.md` (Testdatei `test-claude-md-guard.sh`). Er schlägt an, wenn eine `CLAUDE.md` zu lang wird (Wurzel 4000 Zeichen, andere Ordner 2500), neben einer `CLAUDE.md` die `AGENTS.md` fehlt oder nicht auf sie zeigt, eine `CLAUDE.md` einen Pfad in Backticks nennt, den es nicht gibt, oder ein ausgemusterter Werkzeugname auftaucht. Jede Meldung sagt, was Sie ändern müssen. So bleibt die Regeldatei kurz und stimmt mit dem Ordner überein.
+
 **Abschalten:** Den passenden Eintrag aus `.claude/settings.json` löschen. Die Übergabe-Liste allein schalten Sie mit `"env": { "HANDOFF_HINWEIS": "aus" }` in derselben Datei ab.
 
 Wichtig: Die Hooks sind eine Bremse gegen Versehen, keine Sicherheitsgrenze. Wer will, kommt mit Umwegen daran vorbei. Echte Geheimnisse gehören deshalb gar nicht erst in den Projektordner, sondern nur in `.env.local`.
