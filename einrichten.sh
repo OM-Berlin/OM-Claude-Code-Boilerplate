@@ -6,7 +6,7 @@
 #
 # Was passiert, alles nur in diesem Ordner:
 #   1. .env.local wird aus .env.example angelegt (echte Schlüssel nur dorthin)
-#   2. die Hook-Skripte werden ausführbar gemacht
+#   2. die Hook-Skripte werden ausführbar gemacht (auf der Platte und in Git)
 #   3. Git beginnt eine eigene Geschichte für dieses Projekt (erster Commit)
 #   4. es wird geprüft, dass .env.local nie hochgeladen wird
 #   5. die Hooks werden mit ihren Tests geprüft (wenn Python 3 da ist)
@@ -40,6 +40,9 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 first_commit() {
   git add -A
+  # Git für Windows kennt keine Ausführrechte (core.filemode=false) und würde die Skripte
+  # ohne sie aufnehmen. Hier bekommen sie sie ausdrücklich, auf jedem Rechner gleich.
+  git add --chmod=+x -- '*.sh' 2>/dev/null
   if git commit -q -m "chore: Projekt aus dem Startpaket angelegt" 2>/dev/null; then
     echo "  [3/5] $1, erster Commit gemacht."
   else
@@ -120,3 +123,4 @@ fi
 
 echo
 echo "Fertig. Starten Sie jetzt 'claude' (oder 'codex') in diesem Ordner."
+echo "Ob die Hooks laufen, zeigt jederzeit: bash selbsttest.sh"

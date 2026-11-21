@@ -6,7 +6,7 @@ Es enthält keinen App-Code, keine Zugangsdaten und keine echten Daten. Alles, w
 
 ## In 10 Minuten startklar
 
-**Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder eines der anderen Programme aus der Tabelle unten, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen.
+**Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder eines der anderen Programme aus der Tabelle unten, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen. Was unter Windows sonst zu beachten ist, steht im Abschnitt „Windows“.
 
 **Zusätzlich Python 3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Die Hooks suchen es unter den Namen `python3`, `python` und `py -3` und nehmen den ersten, der wirklich läuft und sich als Python 3 meldet. Unter macOS und Linux ist `python3` meist schon da. Unter Windows installieren Sie Python von python.org. Dort heißt das Programm danach in der Regel `python` oder `py`, nicht `python3`; das reicht, es muss nichts umbenannt werden. Der Platzhalter `python3` aus dem Microsoft Store zählt nicht, er verweist nur auf den Store, und die Hooks überspringen ihn. Ob es klappt, zeigt `python --version` oder `py -3 --version` in Git Bash. Ohne Python 3 setzen die beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt die Einrichtung (`einrichten.sh` oder `einrichten.ps1`) die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne Python.
 
@@ -19,12 +19,35 @@ Es enthält keinen App-Code, keine Zugangsdaten und keine echten Daten. Alles, w
    ```
 4. **Claude Code starten.** Tippen Sie `claude` (oder `codex`). In der Desktop-App wählen Sie stattdessen den Ordner aus. Bestätigen Sie, dass Sie dem Ordner vertrauen; erst dann laufen die Hooks.
 5. **Skills von Matt Pocock installieren.** Claude Code bietet beim ersten Start an, die Skill-Sammlung `mattpocock-skills` zu installieren. Bestätigen Sie das. Kommt keine Frage, geben Sie ein: `/plugin marketplace add mattpocock/skills#4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` und danach `/plugin install mattpocock-skills@mattpocock`. Das braucht Claude Code ab Version 2.1.324 (`claude --version`); warum und was bei einer älteren Version passiert, steht im Abschnitt „Skills von Matt Pocock“. Die Desktop-App aktualisiert sich selbst und hat keinen Befehl `claude --version`; dort müssen Sie nichts prüfen.
-6. **Prüfen.** Geben Sie `/hooks` ein. Dort sollten die fünf Hooks aus dem Abschnitt „Die Hooks“ stehen.
+6. **Prüfen.** Geben Sie `/hooks` ein. Dort sollten die fünf Hooks aus dem Abschnitt „Die Hooks“ stehen. Ob sie auf Ihrem Rechner auch laufen, zeigt `bash selbsttest.sh` im Terminal (unter Windows in Git Bash).
 7. **Regeldatei ausfüllen lassen.** Schreiben Sie: „Frag mich mit dem Skill grilling zu meinem Vorhaben aus und füll danach CLAUDE.md aus. Bleib unter 60 Zeilen.“
 
 Danach geht es mit den Übungen in `uebungen/index.md` weiter.
 
 **Ohne Abo:** Laden Sie `CLAUDE.md` und die Dateien aus `uebungen/` in einen KI-Chat hoch und stellen Sie dieselben Fragen. Hooks und Skills gibt es dort nicht, die Übungen funktionieren trotzdem.
+
+## Windows
+
+**Voraussetzungen:** Windows 10 oder 11 und „Git für Windows“ von git-scm.com, installiert mit den vorgeschlagenen Einstellungen. Git für Windows ist hier Pflicht, nicht nur empfohlen: Es bringt Git Bash mit, und Claude Code startet alle Hooks mit Git Bash. Fehlt Git Bash, nimmt Claude Code PowerShell; dann laufen die Hooks nicht, oder Claude Code sperrt sogar jeden Befehl. Python 3 von python.org ist freiwillig. Ohne Python fehlen nur der Prompt-Wächter und die Schreibsperre nach dem Laden eines Handoffs; die Sperre gefährlicher Befehle, die Handoff-Liste und der Formatierer laufen trotzdem.
+
+**Einrichten:**
+
+1. ZIP mit Rechtsklick und „Alle extrahieren“ entpacken, am besten nach `C:\Projekte\` statt in einen OneDrive-Ordner.
+2. Im entpackten Ordner Rechtsklick, dann „In Terminal öffnen“, und eingeben:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\einrichten.ps1
+   ```
+3. Danach im selben Ordner Rechtsklick, dann „Open Git Bash here“, und eingeben: `bash selbsttest.sh`. Die letzte Zeile muss „Ergebnis: alles in Ordnung.“ lauten. Steht dort etwas anderes, kopieren Sie die ganze Ausgabe und schicken Sie sie Ihrer Lehrgangsleitung. Sie enthält Versionen und den Ordnerpfad, aber keine Schlüssel.
+
+**Die drei wahrscheinlichsten Probleme:**
+
+- **PowerShell verweigert das Skript** („Die Ausführung von Skripts ist auf diesem System deaktiviert“ oder eine Warnung zu Dateien aus dem Internet): Nutzen Sie genau den Befehl aus Schritt 2, er erlaubt das Skript nur für diesen einen Lauf. Hilft das nicht, weil Ihre Firma Skripte zentral sperrt, richten Sie in Git Bash ein: `bash einrichten.sh`.
+- **Claude Code meldet „hook error“ oder sperrt jeden Befehl:** Git Bash fehlt oder wird nicht gefunden. Installieren Sie Git für Windows (neu) und starten Sie Claude Code danach neu.
+- **„$'\r': command not found“ oder „pipefail: invalid option name“:** Ein Skript hat Windows-Zeilenenden bekommen, meist durch Kopieren oder einen Editor. `bash selbsttest.sh` nennt die Datei und den Befehl, der sie repariert. Entpacken Sie sonst das ZIP neu.
+
+Läuft ein Hook nicht, fehlt nur sein Schutz; Ihre Dateien bleiben unberührt. Arbeiten Sie dann ohne echte Schlüssel im Ordner, bis der Selbsttest grün ist.
+
+Stand der Prüfung: Das Paket ist auf macOS und in einer Linux-Nachbildung von Git Bash geprüft (bash 5, GNU-Werkzeuge, mit und ohne Python, Pfad mit Leerzeichen und Umlauten, entpacktes ZIP), aber nicht auf einem echten Windows-Rechner.
 
 ## Was im Paket steckt
 
@@ -33,6 +56,7 @@ CLAUDE.md            Regeldatei. Claude liest sie bei jedem Start. Vorlage mit P
 AGENTS.md            Zeiger auf CLAUDE.md für Codex, Antigravity und Pi
 README.md            diese Anleitung
 einrichten.sh/.ps1   einmal ausführen nach dem Entpacken
+selbsttest.sh        zeigt, ob die Hooks auf diesem Rechner laufen
 .env.example         Namen möglicher Schlüssel, ohne Werte. Echte Werte nur in .env.local
 .gitignore           was Git nie hochlädt, vor allem Schlüssel
 raw/                 fremdes Material, nur lesen, wird nicht hochgeladen
@@ -55,7 +79,7 @@ Ein Hook ist ein kleines Programm, das Claude Code bei einem bestimmten Ereignis
 
 | Hook | Wann | Was er tut |
 |---|---|---|
-| `block-dangerous-commands.sh` | vor Bash, Read und Grep | Er sperrt `rm -rf` auf `/` oder den Home-Ordner, `git push --force` auf main, `git reset --hard`, `git checkout .` und `git restore .` (beide werfen alle ungesicherten Änderungen weg) sowie das Lesen von `.env`-Dateien, auch mit `diff`, `cmp` oder einem rekursiven `grep` über den ganzen Ordner. Einzelne Dateien (`git restore datei.txt`) und Branch-Wechsel bleiben erlaubt. Dafür endet er mit Exitcode 2; Claude Code bricht den Befehl ab, Claude liest den Grund und sucht einen anderen Weg. Er ist ein Sicherheitsgurt gegen Versehen, keine Sandbox: Wer einen Umweg wählt, etwa ein Skript, liest die Datei trotzdem. |
+| `block-dangerous-commands.sh` | vor Bash, PowerShell (nur Windows), Read und Grep | Er sperrt `rm -rf` auf `/` oder den Home-Ordner, `git push --force` auf main, `git reset --hard`, `git checkout .` und `git restore .` (beide werfen alle ungesicherten Änderungen weg) sowie das Lesen von `.env`-Dateien, auch mit `diff`, `cmp` oder einem rekursiven `grep` über den ganzen Ordner. Einzelne Dateien (`git restore datei.txt`) und Branch-Wechsel bleiben erlaubt. Dafür endet er mit Exitcode 2; Claude Code bricht den Befehl ab, Claude liest den Grund und sucht einen anderen Weg. Er ist ein Sicherheitsgurt gegen Versehen, keine Sandbox: Wer einen Umweg wählt, etwa ein Skript, liest die Datei trotzdem. |
 | `list-recent-handoffs.sh` | beim Start | Er zeigt die drei neuesten offenen Übergaben aus `brainstorms/sessions/`. So sehen Sie und Claude sofort, wo die letzte Sitzung aufgehört hat. |
 | `handoff-offer-guard.sh` | bei jeder Nachricht | Er erkennt, ob Sie nur einen Handoff laden oder einen echten Auftrag geben. Lädt jemand nur den Handoff, bittet er Claude um ein kurzes Fazit statt um Arbeit. |
 | `handoff-briefing-gate.sh` | vor jedem Werkzeug | Nach dem bloßen Laden eines Handoffs erlaubt er nur Lese-Werkzeuge. Ihre nächste Nachricht hebt die Sperre auf, damit Claude nicht von selbst mit dem „nächsten Schritt“ loslegt. |
@@ -86,10 +110,10 @@ Das Paket ist für Claude Code gebaut. Die Regeln stehen nur in `CLAUDE.md`. Die
 
 | Programm | Regeln | Skill `session-handoff` | Schutz-Hooks | Geprüft am 21.11.2026 | Hooks unter Windows |
 |---|---|---|---|---|---|
-| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war | geprüft |
-| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft | ungetestet, läuft möglicherweise nicht |
+| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war | in einer Linux-Nachbildung von Git Bash geprüft, nicht auf echtem Windows |
+| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft | eigener Windows-Befehl (`commandWindows`), mit PowerShell 7 nachgestellt; auf Windows ungetestet |
 | Google Antigravity 1.104.0 (IDE) | `CLAUDE.md` über den Zeiger eingebunden | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle, Lesen und Suchen in `.env` | nur mit Testdaten aus der Doku (siehe unten); Hooks nie in einem echten Lauf gesehen | ungetestet, läuft möglicherweise nicht |
-| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt | ungetestet, läuft möglicherweise nicht |
+| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt | Suche nach Git Bash mit Attrappen geprüft; auf Windows ungetestet |
 
 Was Sie wissen sollten:
 
@@ -97,7 +121,7 @@ Was Sie wissen sollten:
 - **Codex** startet Hooks aus `.codex/hooks.json` erst, wenn Sie dem Ordner vertrauen und die Hooks mit `/hooks` freigeben.
 - **Antigravity:** Auf dem Testrechner ist Antigravity 1.104.0 installiert (die Entwicklungsumgebung mit dem Starter `agy`). Diese Version kennt noch keine Hooks. Die Hooks für Antigravity sind deshalb nur nach der Dokumentation gebaut (antigravity.google/docs/hooks) und nie in einem echten Lauf gesehen. Es kann sein, dass sie bei Ihnen nicht anspringen. Verlassen Sie sich dort nicht auf die Sperre.
 - **Pi** fragt vor Befehlen nicht nach; es hat kein Berechtigungssystem. Die Erweiterung `.pi/extensions/schutz-hooks.ts` lädt Pi erst, wenn Sie dem Ordner vertrauen (Frage beim Start oder `/trust`). Ohne diese Freigabe läuft Pi ganz ohne Schutz, und auch mit ihr ist die Sperre nur ein Sicherheitsgurt. Jedes Projekt aus diesem Paket hat eine `.env.local`. Halten Sie deshalb echte Schlüssel aus dem Projektordner heraus, solange Sie Pi benutzen, oder nutzen Sie Pi nicht für Projekte mit Schlüsseln.
-- **Windows:** Die Schutz-Hooks sind unter Windows nur für Claude Code geprüft. Für Codex, Antigravity und Pi sind sie unter Windows ungetestet und laufen möglicherweise nicht. Die Hooks für Codex und Antigravity brauchen eine POSIX-Shell (Git Bash) in der Umgebung, aus der das Programm sie startet. Die Pi-Erweiterung sucht Git Bash selbst und meldet auf stderr, wenn sie keines findet; dann ist ihre Sperre aus.
+- **Windows:** Kein Programm wurde mit diesem Paket auf einem echten Windows-Rechner ausprobiert (Abschnitt „Windows“). Codex und Antigravity starten ihre Hooks dort mit cmd.exe oder PowerShell. Deshalb rufen ihre Befehle bash über einen Git-Alias auf (`git -c "alias.om-hook=!bash ..." om-hook`), der in jeder dieser Shells gleich aussieht. Die Pi-Erweiterung sucht Git Bash selbst und meldet auf stderr, wenn sie keines findet; dann ist ihre Sperre aus.
 - Die **Gemini CLI** ist ein anderes Programm als Antigravity. Sie liest in der getesteten Version 0.19.4 weder `AGENTS.md` noch Skills von selbst und gehört nicht zum Paket.
 
 ## Übergaben zwischen Sitzungen
@@ -156,6 +180,7 @@ Die erste Fassung dieses Pakets gab es zum Workshop im September 2026. Für den 
 - **Sicherer Standard:** Der Modus ohne Rückfragen ist gesperrt, und `einrichten.sh` prüft die Hooks mit ihren Tests.
 - **Vier Programme:** Codex, Antigravity und Pi lesen dieselben Regeln und denselben Handoff-Skill; die Übergabe-Liste und die Sperre gefährlicher Befehle laufen auch dort (Tabelle oben).
 - **Feste Skill-Version:** Die Skills von Matt Pocock sind auf Version 1.3.2 festgelegt.
+- **Windows:** Eigener Abschnitt mit Einrichtung und den häufigsten Problemen, neuer Selbsttest `selbsttest.sh`, feste LF-Zeilenenden über `.gitattributes`, Sperre auch für das PowerShell-Werkzeug von Claude Code.
 
 ## Woher das kommt
 

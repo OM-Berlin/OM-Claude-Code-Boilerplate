@@ -32,6 +32,9 @@ Write-Host "  [2/5] Git ist installiert."
 # 3. Eigene Git-Geschichte
 function First-Commit($text) {
     git add -A
+    # Git für Windows kennt keine Ausführrechte; die Skripte bekommen sie hier ausdrücklich,
+    # damit sie in Git ausführbar sind, wie auf macOS und Linux.
+    git add --chmod=+x -- '*.sh' 2>$null
     git commit -q -m "chore: Projekt aus dem Startpaket angelegt" 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [3/5] $text, erster Commit gemacht."
@@ -135,3 +138,4 @@ if (Get-Command claude -ErrorAction SilentlyContinue) {
 Write-Host ""
 Write-Host "Fertig. Starten Sie jetzt 'claude' (oder 'codex') in diesem Ordner."
 Write-Host "Die Hooks brauchen Git Bash, das mit Git für Windows kommt."
+Write-Host "Ob die Hooks laufen, zeigt jederzeit in Git Bash: bash selbsttest.sh"

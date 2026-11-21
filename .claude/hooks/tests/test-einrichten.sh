@@ -18,7 +18,7 @@ bad() { fail=$((fail + 1)); echo "FAIL: $1"; }
 # Kleine Vorlage mit Remote, dessen Name "OM-Claude-Code-Boilerplate" enthält.
 SRC="$WORK/quelle"
 mkdir -p "$SRC"
-cp "$ROOT/einrichten.sh" "$ROOT/.env.example" "$ROOT/.gitignore" "$SRC/"
+cp "$ROOT/einrichten.sh" "$ROOT/.env.example" "$ROOT/.gitignore" "$ROOT/.gitattributes" "$SRC/"
 git -C "$SRC" init -q -b main 2>/dev/null || { git -C "$SRC" init -q && git -C "$SRC" checkout -q -b main; }
 git -C "$SRC" add -A && git -C "$SRC" commit -q -m "vorlage"
 git init -q --bare "$WORK/OM-Claude-Code-Boilerplate.git"
@@ -98,6 +98,24 @@ claude_lauf keiner -
 grep -q "claude update" "$WORK/cl-keiner.out" && bad "ohne claude-Befehl keine Warnung" || ok
 grep -q "Fertig" "$WORK/cl-keiner.out" && ok || bad "ohne claude-Befehl: Skript muss bis zum Ende laufen"
 
+# 6b. Wie unter Windows: Explorer entpackt ohne Ausführrechte, Git für Windows legt Repos
+# mit core.filemode=false an und nutzt core.autocrlf=true. Die Skripte müssen in Git trotzdem
+# ausführbar sein (sonst ist test-repo-hygiene.sh rot), und git add darf nicht warnen.
+WIN="$WORK/windows"
+mkdir -p "$WIN/.claude/hooks/tests"
+cp "$ROOT/einrichten.sh" "$ROOT/.env.example" "$ROOT/.gitignore" "$ROOT/.gitattributes" "$WIN/"
+printf 'echo hook\n' > "$WIN/.claude/hooks/x.sh"
+printf 'echo test\n' > "$WIN/.claude/hooks/tests/test-x.sh"
+printf '{\n  "a": 1\n}\n' > "$WIN/daten.json"
+find "$WIN" -type f -exec chmod 644 {} +
+(cd "$WIN" && GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.filemode GIT_CONFIG_VALUE_0=false \
+  GIT_CONFIG_KEY_1=core.autocrlf GIT_CONFIG_VALUE_1=true bash einrichten.sh >"$WORK/windows.out" 2>&1)
+modes="$(git -C "$WIN" ls-files -s -- '*.sh' | cut -d' ' -f1 | sort -u | tr '\n' ' ')"
+[ "$modes" = "100755 " ] && ok || bad "Windows: .sh-Dateien müssen in Git ausführbar sein (bekommen: $modes)"
+grep -q "will be replaced" "$WORK/windows.out" && bad "Windows: git add warnt über Zeilenenden" || ok
+[ "$(git -C "$WIN" rev-list --count HEAD 2>/dev/null)" = 1 ] && ok || bad "Windows: erster Commit fehlt"
+grep -q "\[3/5\]" "$WORK/windows.out" && grep -q "Fertig" "$WORK/windows.out" && ok || bad "Windows: Einrichtung lief nicht durch"
+
 # 7. einrichten.ps1 (nicht ausführbar ohne PowerShell): gleiche Mindestversion und gleicher Rat.
 grep -q "2.1.324" "$ROOT/einrichten.ps1" && grep -q "claude update" "$ROOT/einrichten.ps1" \
   && ok || bad "einrichten.ps1 prüft die Version von Claude Code nicht"
@@ -106,6 +124,8 @@ grep -q "run-all.sh" "$ROOT/einrichten.ps1" && grep -q "Git Bash" "$ROOT/einrich
   && ok || bad "einrichten.ps1 startet die Hook-Tests nicht über Git Bash"
 [ "$(head -c 3 "$ROOT/einrichten.ps1" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ] \
   && ok || bad "einrichten.ps1 braucht die BOM am Anfang (sonst liest Windows PowerShell 5.1 die Umlaute falsch)"
+# Auch einrichten.ps1 macht die Skripte in Git ausführbar (Git für Windows tut es nicht).
+grep -q -- "--chmod=+x" "$ROOT/einrichten.ps1" && ok || bad "einrichten.ps1 setzt die Ausführrechte der .sh-Dateien in Git nicht"
 
 echo "$pass ok, $fail fehlgeschlagen"
 [ "$fail" -eq 0 ]
