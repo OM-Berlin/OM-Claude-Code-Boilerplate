@@ -9,7 +9,8 @@
 #
 # Still bei: Resume und Compact (Kontext ist noch da), HANDOFF_HINWEIS=aus, keinem
 # offenen Handoff. Abgeschlossene Handoffs fehlen in der Liste, sortiert wird nach
-# `updated`, weil ein Re-Handoff seinen alten Dateinamen behält.
+# `updated`, weil ein Re-Handoff seinen alten Dateinamen behält. Fehlt `updated`,
+# zählt das Dateidatum.
 # Codex ruft denselben Hook mit HANDOFF_AGENT=codex auf (.codex/hooks.json).
 #
 # Tests: bash .claude/hooks/tests/test-handoff-hooks.sh
@@ -33,12 +34,18 @@ case "$source_kind" in resume|compact) exit 0 ;; esac
 
 field() { grep -m1 -E "^$2:" "$1" 2>/dev/null | sed -E "s/^$2:[[:space:]]*//"; }
 
+# Ohne `updated` zählt das Dateidatum. Ein leeres erstes Feld würde beim Einlesen
+# unten verschluckt, der Handoff fiele dann still aus der Liste.
+file_date() { date -r "$1" '+%Y-%m-%d %H:%M' 2>/dev/null || stat -c '%y' "$1" 2>/dev/null | cut -c1-16; }
+
 # private/ ist ein Unterordner und fällt durch -maxdepth 1 heraus.
 open_handoffs() {
   find "$DIR" -maxdepth 1 -type f -name '*.md' ! -name 'index.md' 2>/dev/null | sort -r | head -"$SCAN_LIMIT" |
   while IFS= read -r f; do
     field "$f" status | grep -q abgeschlossen && continue
-    printf '%s\t%s\n' "$(field "$f" updated)" "$f"
+    u="$(field "$f" updated)"
+    [ -n "$u" ] || u="$(file_date "$f") (Dateidatum)"
+    printf '%s\t%s\n' "$u" "$f"
   done | sort -r | head -"$LIST_LIMIT"
 }
 rows="$(open_handoffs)"

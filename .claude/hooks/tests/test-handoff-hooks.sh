@@ -247,5 +247,18 @@ reset; out="$(printf '{"session_id":"../../x","source":"startup"}' | bash "$HOOK
 reset; out="$(HANDOFF_HINWEIS=aus start startup)"; [ -z "$out" ] && ok || bad "HANDOFF_HINWEIS=aus muss still sein" "$out"
 [ -f "$STATE/s1.armed" ] && bad "aus darf nicht armieren" || ok
 
+# Handoff ohne `updated`: erscheint mit Dateidatum, fällt nicht still aus der Liste.
+rm -f "$SD"/*.md
+printf -- '---\ntopic: %s\nstatus: %s\n---\n' "Ohne Datum" aktiv > "$SD/2026-03-01-0900-ohne-updated.md"
+mk 2026-03-02-0900-mit-updated.md "Mit Datum" "2026-03-02 09:00" aktiv
+reset; out="$(start clear)"
+case "$out" in *"ohne-updated.md"*"Ohne Datum"*"(Dateidatum)"*) ok ;; *) bad "Handoff ohne updated muss mit Dateidatum gelistet werden" "$out" ;; esac
+case "$out" in *"mit-updated.md"*) ok ;; *) bad "Handoff mit updated fehlt neben dem ohne updated" "$out" ;; esac
+rm -f "$SD"/*.md
+printf -- '---\ntopic: %s\nstatus: %s\n---\n' "Nur dieser" aktiv > "$SD/2026-03-03-0900-nur-ohne.md"
+reset; out="$(start clear)"
+case "$out" in *"Nur dieser"*) ok ;; *) bad "Einziger Handoff ohne updated darf nicht verschwinden" "$out" ;; esac
+[ -f "$STATE/s1.armed" ] && ok || bad "Handoff ohne updated muss trotzdem armieren"
+
 echo "$pass ok, $fail fehlgeschlagen"
 [ "$fail" -eq 0 ]
