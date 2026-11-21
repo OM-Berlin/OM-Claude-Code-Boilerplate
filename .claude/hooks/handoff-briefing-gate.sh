@@ -8,14 +8,16 @@
 # als Auftrag. Das ist eine Bremse gegen versehentliches Losarbeiten, keine
 # Sicherheitsgrenze.
 #
-# Ohne Marker startet kein python3; das hält jeden Tool-Aufruf billig.
+# Ohne Marker startet kein Python; das hält jeden Tool-Aufruf billig. Ohne Python 3
+# (python3, python oder py -3, siehe find-python.sh) bleibt der Hook still.
 # Tests: bash .claude/hooks/tests/test-handoff-hooks.sh
 set -uo pipefail
 
 export HANDOFF_STATE_DIR="${TMPDIR:-/tmp}/handoff-guard"
 set -- "$HANDOFF_STATE_DIR"/*.briefing "$HANDOFF_STATE_DIR"/*.offered
 [ -e "$1" ] || [ -e "$2" ] || { cat >/dev/null; exit 0; }
-command -v python3 >/dev/null 2>&1 || { cat >/dev/null; exit 0; }
+# shellcheck source=find-python.sh
+. "$(dirname "$0")/find-python.sh" 2>/dev/null && find_python || { cat >/dev/null; exit 0; }
 
 read -r -d '' GATE_PY <<'PY' || true
 import json, os, re, sys
@@ -75,7 +77,7 @@ def main():
 sys.exit(main())
 PY
 
-python3 -c "$GATE_PY"
+$PY_CMD -c "$GATE_PY"
 rc=$?
 [ "$rc" -eq 2 ] && exit 2
 exit 0

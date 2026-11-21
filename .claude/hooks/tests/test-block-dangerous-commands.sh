@@ -5,6 +5,10 @@
 set -uo pipefail
 
 HOOK="$(cd "$(dirname "$0")/.." && pwd)/block-dangerous-commands.sh"
+
+# Die Tests bauen ihr JSON mit Python. Gesucht wird wie in den Hooks (find-python.sh).
+. "$(dirname "$HOOK")/find-python.sh"
+find_python || { echo "Python 3 fehlt, Test übersprungen (gesucht: python3, python, py -3)"; exit 0; }
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -20,7 +24,7 @@ ok()  { pass=$((pass + 1)); }
 bad() { fail=$((fail + 1)); echo "FAIL: $1"; }
 
 run() { # run <tool> <feld> <wert> -> Exitcode
-  TOOL="$1" KEY="$2" VAL="$3" python3 -c 'import json,os;print(json.dumps({"session_id":"t1","tool_name":os.environ["TOOL"],"tool_input":{os.environ["KEY"]:os.environ["VAL"],"description":"Test"}}))' \
+  TOOL="$1" KEY="$2" VAL="$3" $PY_CMD -c 'import json,os;print(json.dumps({"session_id":"t1","tool_name":os.environ["TOOL"],"tool_input":{os.environ["KEY"]:os.environ["VAL"],"description":"Test"}}))' \
     | bash "$HOOK" >/dev/null 2>"$WORK/err"
 }
 blocked() { run Bash command "$1"; rc=$?; [ "$rc" = 2 ] && ok || bad "muss gesperrt sein (rc=$rc): $1"; }

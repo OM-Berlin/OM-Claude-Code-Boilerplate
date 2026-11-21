@@ -9,7 +9,7 @@
 #   2. die Hook-Skripte werden ausführbar gemacht
 #   3. Git beginnt eine eigene Geschichte für dieses Projekt (erster Commit)
 #   4. es wird geprüft, dass .env.local nie hochgeladen wird
-#   5. die Hooks werden mit ihren Tests geprüft (wenn python3 da ist)
+#   5. die Hooks werden mit ihren Tests geprüft (wenn Python 3 da ist)
 #
 # Globale Einstellungen auf Ihrem Rechner fasst das Skript nicht an.
 # Läuft gefahrlos mehrfach: Vorhandenes wird nicht überschrieben.
@@ -83,14 +83,14 @@ fi
 # 5. Hooks prüfen
 if [ -n "${EINRICHTEN_SKIP_HOOKTESTS:-}" ]; then
   echo "  [5/5] Hook-Tests übersprungen (nur für die Tests dieses Skripts)."
-elif command -v python3 >/dev/null 2>&1; then
+elif . .claude/hooks/find-python.sh 2>/dev/null && find_python; then
   if bash .claude/hooks/tests/run-all.sh >/dev/null 2>&1; then
     echo "  [5/5] Alle Hook-Tests grün."
   else
     echo "  [5/5] Mindestens ein Hook-Test ist rot. Details: bash .claude/hooks/tests/run-all.sh"
   fi
 else
-  echo "  [5/5] Hook-Tests übersprungen, weil python3 fehlt. Die Handoff-Hooks bleiben dann still."
+  echo "  [5/5] Hook-Tests übersprungen, weil Python 3 fehlt (gesucht: python3, python, py -3). Die Handoff-Hooks bleiben dann still."
 fi
 
 echo

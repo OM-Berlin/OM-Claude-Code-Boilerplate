@@ -4,6 +4,10 @@
 set -uo pipefail
 
 HOOKS="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Die Tests bauen ihr JSON mit Python. Gesucht wird wie in den Hooks (find-python.sh).
+. "$HOOKS/find-python.sh"
+find_python || { echo "Python 3 fehlt, Test übersprungen (gesucht: python3, python, py -3)"; exit 0; }
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 export TMPDIR="$WORK/tmp"
@@ -18,11 +22,11 @@ bad() { fail=$((fail + 1)); echo "FAIL: $1"; [ -n "${2:-}" ] && echo "      $2";
 reset() { rm -f "$STATE"/*; }
 arm()   { : > "$STATE/s1.armed"; }
 guard() { # guard <prompt> [sid]
-  PROMPT="$1" SID="${2:-s1}" python3 -c 'import json,os;print(json.dumps({"session_id":os.environ["SID"],"prompt":os.environ["PROMPT"]}))' \
+  PROMPT="$1" SID="${2:-s1}" $PY_CMD -c 'import json,os;print(json.dumps({"session_id":os.environ["SID"],"prompt":os.environ["PROMPT"]}))' \
     | bash "$HOOKS/handoff-offer-guard.sh"
 }
 gate() { # gate <tool> [wert für command, skill und file_path] [sid]; setzt GATE_RC
-  TOOL="$1" CMD="${2:-}" SID="${3:-s1}" python3 -c 'import json,os;c=os.environ["CMD"];print(json.dumps({"session_id":os.environ["SID"],"tool_name":os.environ["TOOL"],"tool_input":{"command":c,"skill":c,"file_path":c}}))' \
+  TOOL="$1" CMD="${2:-}" SID="${3:-s1}" $PY_CMD -c 'import json,os;c=os.environ["CMD"];print(json.dumps({"session_id":os.environ["SID"],"tool_name":os.environ["TOOL"],"tool_input":{"command":c,"skill":c,"file_path":c}}))' \
     | bash "$HOOKS/handoff-briefing-gate.sh" >/dev/null 2>"$WORK/gate.err"
   GATE_RC=$?
 }

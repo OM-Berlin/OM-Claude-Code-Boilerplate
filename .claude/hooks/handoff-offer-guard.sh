@@ -19,12 +19,14 @@
 #
 # Der Ladevorschlag läuft nur beim ersten Prompt (armiert von list-recent-handoffs.sh),
 # das Erkennen eines Handoffs bei jedem Prompt. Jeder neue Prompt löst die Sperre.
-# Ohne python3 bleibt der Hook still und sperrt nichts.
+# Ohne Python 3 (python3, python oder py -3, siehe find-python.sh) bleibt der Hook still
+# und sperrt nichts.
 #
 # Tests: bash .claude/hooks/tests/test-handoff-hooks.sh
 set -uo pipefail
 
-command -v python3 >/dev/null 2>&1 || { cat >/dev/null; exit 0; }
+# shellcheck source=find-python.sh
+. "$(dirname "$0")/find-python.sh" 2>/dev/null && find_python || { cat >/dev/null; exit 0; }
 export HANDOFF_STATE_DIR="${TMPDIR:-/tmp}/handoff-guard"
 
 read -r -d '' GUARD_PY <<'PY' || true
@@ -174,5 +176,5 @@ def main():
 main()
 PY
 
-python3 -c "$GUARD_PY" 2>/dev/null
+$PY_CMD -c "$GUARD_PY" 2>/dev/null
 exit 0

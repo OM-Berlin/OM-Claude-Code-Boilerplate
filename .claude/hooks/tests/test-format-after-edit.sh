@@ -5,6 +5,10 @@
 set -uo pipefail
 
 HOOK="$(cd "$(dirname "$0")/.." && pwd)/format-after-edit.sh"
+
+# Die Tests bauen ihr JSON mit Python. Gesucht wird wie in den Hooks (find-python.sh).
+. "$(dirname "$HOOK")/find-python.sh"
+find_python || { echo "Python 3 fehlt, Test übersprungen (gesucht: python3, python, py -3)"; exit 0; }
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 P="$WORK/projekt"
@@ -22,7 +26,7 @@ fake() { # fake <pfad> <name>: Attrappe, die ihren Namen und die Argumente proto
 }
 edit() { # edit <file_path> -> Exitcode
   : > "$LOG"
-  F="$1" python3 -c 'import json,os;print(json.dumps({"session_id":"t1","tool_name":"Edit","tool_input":{"file_path":os.environ["F"]}}))' \
+  F="$1" $PY_CMD -c 'import json,os;print(json.dumps({"session_id":"t1","tool_name":"Edit","tool_input":{"file_path":os.environ["F"]}}))' \
     | PATH="$WORK/bin:/usr/bin:/bin" bash "$HOOK"
 }
 called()  { grep -q "$1" "$LOG" && ok || bad "$2"; }
