@@ -41,7 +41,15 @@ for f in sub/a.sh b.json c.md; do
 done
 [ "$(lf_cr "$GA/d.ps1")" = crlf ] && ok || bad ".ps1 muss CRLF bekommen" "In .gitattributes fehlt '*.ps1 text eol=crlf'."
 
-scripts="$(find . \( -name .git -o -name node_modules -o -name dist \) -prune -o -type f -name '*.sh' -print | sort)"
+# Geprüft werden nur die Skripte der Vorlage: Wurzelordner, .claude, .codex, .agents, .pi
+# und scripts. Eigene Skripte eines Projekts (zum Beispiel unter brainstorms/ oder src/)
+# gehören dem Projekt und werden hier nicht bewertet.
+OWN_DIRS=""
+for d in .claude .codex .agents .pi scripts; do [ -d "$d" ] && OWN_DIRS="$OWN_DIRS $d"; done
+scripts="$( { find . -maxdepth 1 -type f -name '*.sh' -print
+  # shellcheck disable=SC2086
+  [ -n "$OWN_DIRS" ] && find $OWN_DIRS \( -name node_modules -o -name worktrees \) -prune -o -type f -name '*.sh' -print | sed 's|^|./|'
+  } | sort)"
 [ -n "$scripts" ] && ok || bad "keine .sh-Dateien gefunden"
 
 while IFS= read -r f; do
@@ -61,7 +69,7 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
     [ -n "$f" ] || continue
     [ "$mode" = 100755 ] && ok || bad "$f ist in Git nicht ausführbar ($mode)" "Beheben: git update-index --chmod=+x $f"
   done <<EOF
-$(git ls-files -s -- '*.sh')
+$(git ls-files -s -- ':(glob)*.sh' ':(glob).claude/**/*.sh' ':(glob).codex/**/*.sh' ':(glob).agents/**/*.sh' ':(glob).pi/**/*.sh' ':(glob)scripts/**/*.sh' | grep -v '/worktrees/')
 EOF
 else
   echo "Kein Git-Projekt, Prüfung der Ausführrechte übersprungen"
