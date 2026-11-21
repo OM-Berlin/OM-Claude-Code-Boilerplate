@@ -45,7 +45,8 @@ Ziel: unter 60 Zeilen. Was sich mechanisch prüfen lässt, gehört in einen Hook
 
 ## Ordner
 
-- `raw/`: fremdes Material, nur lesen. `wiki/`: geprüftes Wissen, zuerst `wiki/index.md`.
+- `raw/`: fremdes Material, nur lesen.
+- `wiki/`: geprüftes Wissen, zuerst `wiki/index.md`. Neue Seite: Kopie von `wiki/_vorlage.md`, dazu je eine Zeile in `wiki/index.md` und `wiki/log.md`.
 - `brainstorms/`: Überlegungen und Pläne, Übergaben in `brainstorms/sessions/`.
 - `decisions/log.md`: Entscheidungen mit Datum, nur unten anhängen.
 - `projects/`: die eigentliche Arbeit. `outputs/`: fertige Ergebnisse.

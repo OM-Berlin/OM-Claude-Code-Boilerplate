@@ -49,6 +49,9 @@ Thumbs.db
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+.obsidian/workspace*.json
+.obsidian/cache/
+.trash/
 
 # 5) Abhängigkeiten und Bauergebnisse
 node_modules/
