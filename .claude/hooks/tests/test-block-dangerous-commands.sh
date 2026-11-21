@@ -283,6 +283,127 @@ json_block 'rm -rf C:\'
 out="$(printf '{"tool_name":"Bash","tool_input":{"command":"git status"}}' | HOOK_AUSGABE=json bash "$HOOK")"; rc=$?
 [ "$rc" = 0 ] && [ -z "$out" ] && ok || bad "HOOK_AUSGABE=json: erlaubter Befehl ohne Ausgabe (rc=$rc)" "$out"
 
+# --- Windows-Pfade, cmd, PowerShell (Review vom 21.11.2026) ---
+# Rückwärtsstriche entstehen erst zur Laufzeit aus #, damit keine Werkzeugschicht
+# Folgen wie Backslash-n, Backslash-t oder Backslash-u schon vorher auflöst.
+B="$(printf '\134')"
+NL="$(printf '\012x')"; NL="${NL%x}"
+WIN_HOME="C:${B}Users${B}nina"
+wrun() { W="${2//#/$B}"; USERPROFILE="$WIN_HOME" run "$1" command "$W"; }
+wblocked() { wrun PowerShell "$1"; rc=$?; [ "$rc" = 2 ] && ok || bad "Windows muss gesperrt sein (rc=$rc): $W"; }
+wallowed() { wrun PowerShell "$1"; rc=$?; [ "$rc" = 0 ] && ok || bad "Windows muss erlaubt sein (rc=$rc): $W"; }
+# H1: Backslash plus n oder t im Pfad bleibt Backslash plus Buchstabe.
+wblocked 'Remove-Item -Recurse -Force C:#Users#nina'
+wblocked 'Remove-Item -Recurse -Force C:#USERS#NINA#'
+wblocked 'Get-Content C:#Projekte#neu#.env'
+wblocked 'git -C C:#new#app reset --hard'
+wblocked 'git -C C:#temp#app clean -fd'
+wrun Bash 'git -C C:#new#app reset --hard'; [ $? = 2 ] && ok || bad "Bash-Werkzeug muss gesperrt sein: $W"
+allowed 'git -C'
+# H2: cmd-Schreibweise und cmd /c, powershell -Command
+wblocked 'cmd /c rd /s /q %USERPROFILE%'
+wblocked 'cmd /c "rmdir /s /q C:#Users#nina"'
+wblocked 'del /s /q %USERPROFILE%#*'
+wblocked 'erase /s /q %USERPROFILE%#*'
+wblocked 'rd /s /q C:#'
+wblocked 'rd /S /Q C:#Users#nina'
+wblocked 'cmd /c "git reset --hard"'
+wblocked 'cmd.exe /C "git status & git reset --hard"'
+wblocked 'cmd /k git clean -fd'
+wblocked 'pwsh -c "git reset --hard"'
+wblocked 'powershell -Command "Remove-Item -Recurse -Force ~"'
+wblocked 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command git reset --hard'
+wblocked 'Invoke-Expression "git reset --hard"'
+wblocked 'pwsh -EncodedCommand ZwBpAHQAIAByAGUAcwBlAHQA'
+grep -q "EncodedCommand" "$WORK/err" && ok || bad "Begründung für -EncodedCommand fehlt auf stderr"
+wblocked 'powershell -enc ZwBpAHQA'
+blocked 'bash -c "git status && git reset --hard"'
+blocked "git reset '--hard'"
+blocked 'rm "-rf" ~'
+# M3: Home in allen Schreibweisen, Großschreibung egal
+wblocked 'Remove-Item -Recurse -Force $Env:USERPROFILE'
+wblocked 'Remove-Item -Recurse ${env:USERPROFILE}'
+wblocked 'Remove-Item -Recurse -Force $home'
+wblocked 'Remove-Item -Recurse -Force $env:USERPROFILE#*'
+wblocked 'Remove-Item -Recurse -Force $env:USERPROFILE/*'
+wblocked 'rd /s /q %USERPROFILE%#*'
+wblocked 'rd /s /q %userprofile%'
+wblocked 'rm -rf $HOME/*'
+# M4: .env über PowerShell und cmd
+wblocked 'Get-ChildItem -Recurse | Select-String API_KEY'
+wblocked 'gci -r | sls KEY'
+wblocked 'Get-ChildItem | Get-Content'
+wblocked 'Select-String -Path * -Pattern KEY'
+wblocked 'Select-String KEY *.*'
+wblocked 'findstr API .env'
+wblocked 'findstr /s KEY *'
+wblocked 'findstr /g:.env README.md'
+wblocked 'type .env'
+wblocked 'gc .env.local'
+wblocked 'cat .#.env'
+wblocked 'cat .ENV'
+wblocked 'Get-Content .Env.Local'
+wblocked 'Get-Content -Path:.env'
+wblocked 'cmd /c type .env'
+# Gewöhnliche Befehle mit Windows-Pfaden bleiben erlaubt.
+wallowed 'cd C:#Users#nina#projekt'
+wallowed 'Copy-Item C:#temp#a.txt C:#temp#b.txt'
+wallowed 'git -C C:#new#app status'
+wallowed 'Remove-Item C:#temp#build#out.txt'
+wallowed 'rm -r -fo C:#temp#build'
+wallowed 'Remove-Item -Recurse -Force C:#Users#david#node_modules'
+wallowed 'Remove-Item -Recurse -Force C:#Users#nina#projekt#node_modules'
+wallowed 'Remove-Item -Recurse ~#tmp'
+wallowed 'type README.md'
+wallowed 'findstr TODO src#*.js'
+wallowed 'findstr /s TODO *.js'
+wallowed 'Get-Content .env.example'
+wallowed 'cat .ENV.EXAMPLE'
+wallowed 'del notes.txt'
+wallowed 'rd /s /q build'
+wallowed 'cmd /c dir'
+wallowed 'cmd /c "git status"'
+wallowed 'pwsh -c "git status"'
+wallowed 'powershell -ExecutionPolicy Bypass -File build.ps1'
+wallowed 'Get-ChildItem -Recurse src | Select-String TODO'
+wallowed 'Get-ChildItem -Recurse -Exclude .env* | Select-String KEY'
+wallowed 'Get-ChildItem -Recurse -Filter *.ts | Select-String TODO'
+wallowed 'Get-ChildItem -Recurse | Select-Object Name'
+wallowed 'Select-String TODO README.md'
+wallowed 'Remove-Item -Recurse $homepath'
+wallowed 'type nul > .env.local'
+wblocked 'type .env > kopie.txt'
+
+# JSON-Escapes werden in einem Durchgang aufgelöst. Das JSON entsteht hier als Rohtext.
+raw() { printf '%s' "$1" | USERPROFILE="$WIN_HOME" bash "$HOOK" >/dev/null 2>"$WORK/err"; }
+raw '{"tool_name":"Bash","tool_input":{"command":"git reset '"${B}"'u002d-hard"}}'; [ $? = 2 ] && ok || bad "U+002d im JSON wird zu - und sperrt git reset --hard"
+raw '{"tool_name":"Bash","tool_input":{"command":"echo ok'"${B}"'ngit reset --hard"}}'; [ $? = 2 ] && ok || bad "JSON-Zeilenumbruch trennt Befehle"
+raw '{"tool_name":"Bash","tool_input":{"command":"echo '"${B}${B}"'u0026 ok"}}'; [ $? = 0 ] && ok || bad "doppelter Backslash vor u0026 ist kein &"
+raw '{"tool_name":"PowerShell","tool_input":{"command":"rm -r -fo C:'"${B}${B}"'temp'"${B}${B}"'build"}}'; [ $? = 0 ] && ok || bad "Rohtext: C:\\temp\\build bleibt erlaubt"
+raw '{"tool_name":"Bash","tool_input":{"command":"echo '"${B}"'u0000"}}'; [ $? = 2 ] && ok || bad "U+0000 ist nicht prüfbar und wird gesperrt"
+raw '{"tool_name":"Bash","tool_input":{"command":"echo caf'"${B}"'u00e9"}}'; [ $? = 0 ] && ok || bad "U+00e9 wird zu é und bleibt erlaubt"
+run Bash command "echo ok${NL}git reset --hard"; [ $? = 2 ] && ok || bad "echter Zeilenumbruch trennt Befehle"
+
+# L6: Ungültiges UTF-8 darf die Prüfung nicht aushebeln, auch nicht in einer UTF-8-Umgebung.
+printf '{"tool_name":"Bash","tool_input":{"command":"git reset --hard \377"}}' | LC_ALL=en_US.UTF-8 bash "$HOOK" >/dev/null 2>&1
+[ $? = 2 ] && ok || bad "ungültiges UTF-8: git reset --hard bleibt gesperrt"
+printf '{"tool_name":"Bash","tool_input":{"command":"cat \377 .env.local"}}' | LC_ALL=en_US.UTF-8 bash "$HOOK" >/dev/null 2>&1
+[ $? = 2 ] && ok || bad "ungültiges UTF-8: cat .env.local bleibt gesperrt"
+
+# L5: Tempo. Manche Programme geben einem Hook nur 10 Sekunden; danach läuft der Befehl
+# ungeprüft. Unter Git Bash kostet jeder Extra-Prozess ein Vielfaches von macOS, deshalb
+# darf der Hook pro Argument keinen Prozess starten. Grenze: 300 Argumente in 2 Sekunden
+# auf einem aktuellen Mac.
+big="Remove-Item"
+i=0
+while [ "$i" -lt 300 ]; do big="$big C:#temp#build#out$i.txt"; i=$((i + 1)); done
+t0="$($PY_CMD -c 'import time; print(time.time())')"
+wrun PowerShell "$big"; rc=$?
+t1="$($PY_CMD -c 'import time; print(time.time())')"
+[ "$rc" = 0 ] && ok || bad "300 Argumente: erlaubt erwartet (rc=$rc)"
+$PY_CMD -c "import sys; sys.exit(0 if $t1 - $t0 < 2.0 else 1)" && ok ||
+  bad "300 Argumente dauern länger als 2 Sekunden: $($PY_CMD -c "print(round($t1 - $t0, 2))") s"
+
 # --- Meldung und Robustheit ---
 run Bash command 'git reset --hard'
 grep -q "git stash" "$WORK/err" && ok || bad "Begründung fehlt auf stderr"

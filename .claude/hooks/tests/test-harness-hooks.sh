@@ -193,6 +193,27 @@ agy_raw 'echo caf@u00e9' deny "nicht lesbares U+00e9"
 case "$(field "$OUT" "d['reason']")" in *"Unicode"*) ok ;; *) bad "Antigravity: Grund nennt die Unicode-Schreibweise" "$OUT" ;; esac
 agy_raw 'echo @u0000' deny "U+0000"
 
+# Windows-Pfade: Backslash plus n oder t bleibt Backslash plus Buchstabe. Die Rückwärts-
+# striche entstehen erst zur Laufzeit, damit keine Werkzeugschicht sie vorher auflöst.
+B="$(printf '\134')"
+agy_env() { # agy_env <befehl mit # für Backslash> <allow|deny>
+  CMD="${1//#/$B}" agy_tool run_command "{'CommandLine':os.environ['CMD'],'Cwd':P}" "$2" "${1//#/$B}"
+}
+agy_env 'git -C C:#new#app reset --hard' deny
+agy_env 'git -C C:#new#app status' allow
+agy_env 'rm -r -fo C:#temp#build' allow
+agy_env 'cmd /c "git reset --hard"' deny
+# Ungültiges UTF-8 darf die Prüfung nicht aushebeln, auch nicht in einer UTF-8-Umgebung.
+cmd="$(hook_cmds "$AGY" PreToolUse run_command)"
+OUT="$(cd "$PROJ" && printf '{"toolCall":{"name":"run_command","args":{"CommandLine":"git reset --hard \377"}}}' | LC_ALL=en_US.UTF-8 bash -c "$cmd" 2>&1)"
+[ "$(field "$OUT" "d['decision']")" = deny ] && ok || bad "Antigravity: ungültiges UTF-8 mit git reset --hard wird abgelehnt" "$OUT"
+# Endet der Hook unerwartet (weder 0 noch 2), lehnt der Adapter ab, statt durchzulassen.
+mkdir -p "$WORK/kaputt/hooks"
+cp "$ROOT/.claude/hooks/antigravity-adapter.sh" "$WORK/kaputt/hooks/"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 3' >"$WORK/kaputt/hooks/block-dangerous-commands.sh"
+OUT="$(printf '{"toolCall":{"name":"run_command","args":{"CommandLine":"ls"}}}' | bash "$WORK/kaputt/hooks/antigravity-adapter.sh" pre-tool 2>&1)"
+[ "$(field "$OUT" "d['decision']")" = deny ] && ok || bad "Antigravity: Hook endet mit 3, Adapter lehnt ab" "$OUT"
+
 # --- Pi (.pi/extensions/schutz-hooks.ts) ---
 if ! command -v node >/dev/null 2>&1; then
   echo "Node fehlt, Pi-Teil übersprungen"
@@ -255,6 +276,7 @@ same(ext.hookPath("C:\\Users\\Jürgen Müller\\Lehrgang KI"),
   same(/\\/.test(calls[0].args[0]), false, "Windows: Hook-Pfad ohne Rückwärtsstriche");
   same(calls[0].opts.env.CLAUDE_PROJECT_DIR, ext.findRoot(cwd), "Windows: Projektordner in CLAUDE_PROJECT_DIR");
   same(JSON.parse(calls[0].opts.input).tool_name, "Bash", "Windows: PowerShell-Befehl geht als Bash an den Hook");
+  same(calls[0].opts.env.HOOK_AUSGABE, "", "HOOK_AUSGABE aus der Shell wird für den Hook geleert");
   same(ext.check(cwd, "bash", { command: "git status" }, { bash: () => gitBash, spawn: spawn(0) }), undefined, "Windows: Exitcode 0 lässt durch");
   same(ext.check(cwd, "bash", { command: "git reset --hard" }, { bash: () => gitBash, spawn: spawn(null, { error: new Error("ENOENT") }) }),
     undefined, "Windows: bash startet nicht, Aufruf bleibt offen");
@@ -266,6 +288,13 @@ for (const [toolName, input, blocked] of cases) {
   const why = result && result.reason ? result.reason : "";
   console.log(got === blocked && (!got || why.includes("Gesperrt")) ? "ok" : `FAIL ${toolName} ${JSON.stringify(input)}: block=${got}`);
 }
+// HOOK_AUSGABE=json aus der Shell des Nutzers ließe den Hook mit 0 enden; Pi darf das nicht.
+process.env.HOOK_AUSGABE = "json";
+{
+  const result = await handler({ type: "tool_call", toolName: "bash", toolCallId: "t2", input: { command: "git reset --hard" } }, { cwd });
+  console.log(result && result.block ? "ok" : "FAIL HOOK_AUSGABE=json aus der Shell lässt git reset --hard durch");
+}
+delete process.env.HOOK_AUSGABE;
 JS
   mkdir -p "$PROJ/.pi/extensions" && cp "$ROOT/.pi/extensions/schutz-hooks.ts" "$PROJ/.pi/extensions/"
   out="$(node --experimental-strip-types --no-warnings "$WORK/pi-test.mjs" \

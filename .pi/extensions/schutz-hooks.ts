@@ -107,7 +107,8 @@ export function check(cwd: string, toolName: string, input: Record<string, unkno
     input: payload,
     encoding: "utf8",
     timeout: 10000,
-    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+    // HOOK_AUSGABE=json aus der Shell ließe den Hook mit 0 enden: Pi braucht den Exitcode.
+    env: { ...process.env, CLAUDE_PROJECT_DIR: root, HOOK_AUSGABE: "" },
   });
   if (run.status !== BLOCKED_EXIT) return undefined;
   return (run.stderr || "").trim() || "Gesperrt vom Hook block-dangerous-commands.sh";

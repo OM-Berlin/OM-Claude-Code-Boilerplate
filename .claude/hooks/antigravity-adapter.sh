@@ -11,12 +11,15 @@
 #   run_command  { CommandLine }  -> Bash { command }
 #   view_file    { AbsolutePath } -> Read { file_path }
 #   grep_search  { SearchPath }   -> Grep { path }
-# Exitcode 2 des Hooks wird zu {"decision":"deny","reason":"..."}, sonst {"decision":"allow"}
-# ("allow" heißt bei Antigravity: weiter zur normalen Rückfrage, keine Freigabe).
+# Exitcode 2 des Hooks wird zu {"decision":"deny","reason":"..."}, Exitcode 0 zu
+# {"decision":"allow"} ("allow" heißt bei Antigravity: weiter zur normalen Rückfrage, keine
+# Freigabe). Jeder andere Exitcode heißt, der Hook konnte nicht prüfen: dann ebenfalls deny.
 #
 # Tests: bash .claude/hooks/tests/test-harness-hooks.sh
 # Nur bash, sed, tr und awk; bash 3.2 kompatibel (macOS).
 set -uo pipefail
+# Byteweise arbeiten: In einer UTF-8-Umgebung brechen tr und sed bei ungültigen Bytes ab.
+export LC_ALL=C
 
 HOOKS="$(cd "$(dirname "$0")" && pwd)"
 payload="$(tr '\r\n' '  ')"
@@ -112,8 +115,12 @@ case "${1:-}" in
       fi
       claude="{\"tool_name\":\"$tool\",\"tool_input\":{\"$field\":\"$(json_escape "$DECODED")\"}}"
       reason="$(printf '%s' "$claude" | HOOK_AUSGABE= CLAUDE_PROJECT_DIR="$root" bash "$HOOKS/block-dangerous-commands.sh" 2>&1 >/dev/null)"
-      if [ $? -eq 2 ]; then
+      rc=$?
+      if [ "$rc" -eq 2 ]; then
         printf '{"decision":"deny","reason":"%s"}\n' "$(json_escape "$reason")"
+        exit 0
+      elif [ "$rc" -ne 0 ]; then
+        printf '{"decision":"deny","reason":"%s"}\n' "$(json_escape "Gesperrt vom Adapter antigravity-adapter.sh: Der Hook block-dangerous-commands.sh konnte den Aufruf nicht prüfen (Exitcode $rc).")"
         exit 0
       fi
     fi
