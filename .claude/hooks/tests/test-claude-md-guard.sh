@@ -44,7 +44,8 @@ chars() { LC_ALL=C tr -d '\200-\277' < "$1" | wc -c | tr -d ' '; }
 # raw/ und Arbeitskopien anderer Sitzungen (worktrees, .vibe, .wt).
 find_files() {
   find "$1" \( -name .git -o -name node_modules -o -name vendor -o -name dist -o -name raw \
-    -o -name worktrees -o -name .vibe -o -name .wt -o -name .venv -o -name venv \) -prune \
+    -o -name worktrees -o -name .vibe -o -name .wt -o -name .venv -o -name venv \
+    -o -name build -o -name .build -o -name DerivedData -o -name SourcePackages \) -prune \
     -o -type f -name "$2" -print 2>/dev/null | sort
 }
 
