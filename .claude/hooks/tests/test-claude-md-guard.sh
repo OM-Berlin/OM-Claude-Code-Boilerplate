@@ -39,9 +39,13 @@ bad() { fail=$((fail + 1)); echo "FAIL: $1"; [ -n "${2:-}" ] && echo "      $2";
 # Zeichen, nicht Bytes: Fortsetzungsbytes von UTF-8 (0x80-0xBF) zählen nicht mit.
 chars() { LC_ALL=C tr -d '\200-\277' < "$1" | wc -c | tr -d ' '; }
 
-# find_files <root> <name>: Dateien dieses Namens, ohne .git, node_modules und dist.
+# find_files <root> <name>: Dateien dieses Namens. Ausgelassen wird, was nicht zu den Regeln
+# des Projekts gehört: Git-Interna, Abhängigkeiten, Build-Ausgaben, fremdes Material unter
+# raw/ und Arbeitskopien anderer Sitzungen (worktrees, .vibe, .wt).
 find_files() {
-  find "$1" \( -name .git -o -name node_modules -o -name dist \) -prune -o -type f -name "$2" -print 2>/dev/null | sort
+  find "$1" \( -name .git -o -name node_modules -o -name vendor -o -name dist -o -name raw \
+    -o -name worktrees -o -name .vibe -o -name .wt -o -name .venv -o -name venv \) -prune \
+    -o -type f -name "$2" -print 2>/dev/null | sort
 }
 
 # Pfade in Backticks, ohne Codeblöcke (```), einer pro Zeile.
