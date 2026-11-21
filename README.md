@@ -8,17 +8,17 @@ Es enthält keinen App-Code, keine Zugangsdaten und keine echten Daten. Alles, w
 
 **Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder eines der anderen Programme aus der Tabelle unten, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen.
 
-**Zusätzlich Python 3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Die Hooks suchen es unter den Namen `python3`, `python` und `py -3` und nehmen den ersten, der wirklich läuft und sich als Python 3 meldet. Unter macOS und Linux ist `python3` meist schon da. Unter Windows installieren Sie Python von python.org. Dort heißt das Programm danach in der Regel `python` oder `py`, nicht `python3`; das reicht, es muss nichts umbenannt werden. Der Platzhalter `python3` aus dem Microsoft Store zählt nicht, er verweist nur auf den Store, und die Hooks überspringen ihn. Ob es klappt, zeigt `python --version` oder `py -3 --version` in Git Bash. Ohne Python 3 setzen die beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt `einrichten.sh` die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne Python.
+**Zusätzlich Python 3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Die Hooks suchen es unter den Namen `python3`, `python` und `py -3` und nehmen den ersten, der wirklich läuft und sich als Python 3 meldet. Unter macOS und Linux ist `python3` meist schon da. Unter Windows installieren Sie Python von python.org. Dort heißt das Programm danach in der Regel `python` oder `py`, nicht `python3`; das reicht, es muss nichts umbenannt werden. Der Platzhalter `python3` aus dem Microsoft Store zählt nicht, er verweist nur auf den Store, und die Hooks überspringen ihn. Ob es klappt, zeigt `python --version` oder `py -3 --version` in Git Bash. Ohne Python 3 setzen die beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt die Einrichtung (`einrichten.sh` oder `einrichten.ps1`) die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne Python.
 
 1. **Entpacken.** Entpacken Sie `startpaket-claude-code.zip` und geben Sie dem Ordner einen Namen für Ihr Vorhaben, zum Beispiel `abfuhr-erinnerung`. Legen Sie ihn am besten nicht in einen OneDrive- oder Dropbox-Ordner, weil die Synchronisierung beim Arbeiten stört.
 2. **Terminal im Ordner öffnen.** macOS: Rechtsklick auf den Ordner, dann „Dienste“ und „Neues Terminal beim Ordner“. Windows: im Ordner Rechtsklick, dann „In Terminal öffnen“.
-3. **Einrichten.** Das Skript legt `.env.local` für Ihre Schlüssel an, beginnt eine eigene Git-Geschichte und prüft die Hooks. Es ändert nichts außerhalb des Ordners.
+3. **Einrichten.** Das Skript legt `.env.local` für Ihre Schlüssel an, beginnt eine eigene Git-Geschichte und prüft die Hooks (unter Windows über Git Bash, sofern es an den üblichen Orten liegt; sonst sagt das Skript, dass es die Tests übersprungen hat). Es ändert nichts außerhalb des Ordners.
    ```bash
    bash einrichten.sh                                          # macOS und Linux
    powershell -ExecutionPolicy Bypass -File .\einrichten.ps1   # Windows
    ```
 4. **Claude Code starten.** Tippen Sie `claude` (oder `codex`). In der Desktop-App wählen Sie stattdessen den Ordner aus. Bestätigen Sie, dass Sie dem Ordner vertrauen; erst dann laufen die Hooks.
-5. **Skills von Matt Pocock installieren.** Claude Code bietet beim ersten Start an, die Skill-Sammlung `mattpocock-skills` zu installieren. Bestätigen Sie das. Kommt keine Frage, geben Sie ein: `/plugin marketplace add mattpocock/skills#4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` und danach `/plugin install mattpocock-skills@mattpocock`. Das braucht Claude Code ab Version 2.1.324 (`claude --version`); warum, steht im Abschnitt „Skills von Matt Pocock“.
+5. **Skills von Matt Pocock installieren.** Claude Code bietet beim ersten Start an, die Skill-Sammlung `mattpocock-skills` zu installieren. Bestätigen Sie das. Kommt keine Frage, geben Sie ein: `/plugin marketplace add mattpocock/skills#4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` und danach `/plugin install mattpocock-skills@mattpocock`. Das braucht Claude Code ab Version 2.1.324 (`claude --version`); warum und was bei einer älteren Version passiert, steht im Abschnitt „Skills von Matt Pocock“. Die Desktop-App aktualisiert sich selbst und hat keinen Befehl `claude --version`; dort müssen Sie nichts prüfen.
 6. **Prüfen.** Geben Sie `/hooks` ein. Dort sollten die fünf Hooks aus dem Abschnitt „Die Hooks“ stehen.
 7. **Regeldatei ausfüllen lassen.** Schreiben Sie: „Frag mich mit dem Skill grilling zu meinem Vorhaben aus und füll danach CLAUDE.md aus. Bleib unter 60 Zeilen.“
 
@@ -82,19 +82,20 @@ Wichtig: Die Hooks sind eine Bremse gegen Versehen, keine Sicherheitsgrenze. Wer
 
 Das Paket ist für Claude Code gebaut. Die Regeln stehen nur in `CLAUDE.md`. Die anderen Programme lesen zuerst `AGENTS.md`, einen kurzen Zeiger, der sie auffordert, `CLAUDE.md` vollständig zu lesen. Google Antigravity bindet `CLAUDE.md` über die Zeile `@[CLAUDE.md](./CLAUDE.md)` sogar direkt ein. Den Skill `session-handoff` gibt es zweimal mit gleichem Inhalt: in `.claude/skills/` für Claude Code und in `.agents/skills/` für die anderen.
 
-| Programm | Regeln | Skill `session-handoff` | Schutz-Hooks | Geprüft am 21.11.2026 |
-|---|---|---|---|---|
-| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war |
-| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft |
-| Google Antigravity | `CLAUDE.md` über den Zeiger eingebunden | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle, Lesen und Suchen in `.env` | nur mit Testdaten aus der Doku; die Antigravity-CLI war nicht installiert |
-| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt |
+| Programm | Regeln | Skill `session-handoff` | Schutz-Hooks | Geprüft am 21.11.2026 | Hooks unter Windows |
+|---|---|---|---|---|---|
+| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war | geprüft |
+| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft | ungetestet, läuft möglicherweise nicht |
+| Google Antigravity 1.104.0 (IDE) | `CLAUDE.md` über den Zeiger eingebunden | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle, Lesen und Suchen in `.env` | nur mit Testdaten aus der Doku (siehe unten); Hooks nie in einem echten Lauf gesehen | ungetestet, läuft möglicherweise nicht |
+| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt | ungetestet, läuft möglicherweise nicht |
 
 Was Sie wissen sollten:
 
 - **Nur in Claude Code:** der Prompt-Wächter und die Schreibsperre nach dem Laden eines Handoffs, der Formatierer und die Sperre des Modus ohne Rückfragen.
 - **Codex** startet Hooks aus `.codex/hooks.json` erst, wenn Sie dem Ordner vertrauen und die Hooks mit `/hooks` freigeben.
-- **Pi** fragt vor Befehlen nicht nach; es hat kein Berechtigungssystem. Die Erweiterung `.pi/extensions/schutz-hooks.ts` lädt Pi erst, wenn Sie dem Ordner vertrauen (Frage beim Start oder `/trust`). Ohne diese Freigabe läuft Pi ganz ohne Schutz. Nutzen Sie Pi deshalb nur in einem Ordner ohne Geheimnisse.
-- **Windows:** Die Hooks für Codex, Antigravity und Pi sind nur unter macOS geprüft.
+- **Antigravity:** Auf dem Testrechner ist Antigravity 1.104.0 installiert (die Entwicklungsumgebung mit dem Starter `agy`). Diese Version kennt noch keine Hooks. Die Hooks für Antigravity sind deshalb nur nach der Dokumentation gebaut (antigravity.google/docs/hooks) und nie in einem echten Lauf gesehen. Es kann sein, dass sie bei Ihnen nicht anspringen. Verlassen Sie sich dort nicht auf die Sperre.
+- **Pi** fragt vor Befehlen nicht nach; es hat kein Berechtigungssystem. Die Erweiterung `.pi/extensions/schutz-hooks.ts` lädt Pi erst, wenn Sie dem Ordner vertrauen (Frage beim Start oder `/trust`). Ohne diese Freigabe läuft Pi ganz ohne Schutz, und auch mit ihr ist die Sperre nur ein Sicherheitsgurt. Jedes Projekt aus diesem Paket hat eine `.env.local`. Halten Sie deshalb echte Schlüssel aus dem Projektordner heraus, solange Sie Pi benutzen, oder nutzen Sie Pi nicht für Projekte mit Schlüsseln.
+- **Windows:** Die Schutz-Hooks sind unter Windows nur für Claude Code geprüft. Für Codex, Antigravity und Pi sind sie unter Windows ungetestet und laufen möglicherweise nicht. Die Hooks für Codex und Antigravity brauchen eine POSIX-Shell (Git Bash) in der Umgebung, aus der das Programm sie startet. Die Pi-Erweiterung sucht Git Bash selbst und meldet auf stderr, wenn sie keines findet; dann ist ihre Sperre aus.
 - Die **Gemini CLI** ist ein anderes Programm als Antigravity. Sie liest in der getesteten Version 0.19.4 weder `AGENTS.md` noch Skills von selbst und gehört nicht zum Paket.
 
 ## Übergaben zwischen Sitzungen
@@ -104,6 +105,8 @@ Am Ende einer Sitzung sagen Sie „Mach einen Handoff“. Der Skill `session-han
 ## Skills von Matt Pocock
 
 Aus der Sammlung `mattpocock-skills` nutzt das Paket `grilling`, `diagnosing-bugs`, `tdd` und `code-review`. In `.claude/settings.json` ist die Sammlung mit `ref` auf einen festen Stand gelegt: den Commit `4ae2317`, Version 1.3.2. So ändern sich die Skills während des Lehrgangs nicht von selbst. Claude Code kann einen solchen Commit-Stand erst ab Version 2.1.324 lesen.
+
+**Wenn die Skills fehlen:** Bei einer älteren Version bietet Claude Code die Sammlung nicht an. Sie merken es daran, dass der Skill `grilling` fehlt: Er erscheint nicht in der Liste, die nach der Eingabe von `/` aufgeht, und Schritt 7 aus „In 10 Minuten startklar“ läuft ins Leere. Geben Sie dann im Terminal `claude update` ein, starten Sie Claude Code neu und wiederholen Sie Schritt 5. `einrichten.sh` und `einrichten.ps1` warnen vor einer zu alten Version, wenn sie `claude --version` lesen können. In der Desktop-App gibt es diesen Befehl nicht; sie aktualisiert sich selbst. Starten Sie die App neu und wiederholen Sie Schritt 5.
 
 Die Festlegung greift nur, wenn Claude Code die Sammlung zum ersten Mal einträgt. Wer sie schon früher ohne Festlegung eingetragen hat, behält seinen Stand. Auf einen neueren Stand wechseln Sie so: Suchen Sie auf github.com/mattpocock/skills den Commit der gewünschten Version, tragen Sie seine volle Kennung (40 Zeichen) in `.claude/settings.json` bei `ref` ein, geben Sie in Claude Code `/plugin marketplace remove mattpocock` ein und starten Sie Claude Code neu. Dann bietet es die Installation wieder an.
 
