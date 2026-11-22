@@ -4,27 +4,30 @@ Dieses Startpaket ist ein leerer Projektordner mit allem, was ein gutes KI-Proje
 
 Es enthält keinen App-Code, keine Zugangsdaten und keine echten Daten. Alles, was Sie bauen, entsteht in diesem Ordner.
 
-## In 10 Minuten startklar
+## Startklar, ohne Befehle zu tippen
 
-**Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder eines der anderen Programme aus der Tabelle unten, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen. Was unter Windows sonst zu beachten ist, steht im Abschnitt „Windows“.
+Sie tippen keine Befehle. Sie geben Claude Code (oder Codex) einen Auftrag in normaler Sprache, und das Programm richtet den Ordner selbst ein. Am bequemsten geht das in der Desktop-App von Claude im Bereich „Code“.
 
-**Zusätzlich Python 3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Die Hooks suchen es unter den Namen `python3`, `python` und `py -3` und nehmen den ersten, der wirklich läuft und sich als Python 3 meldet. Unter macOS und Linux ist `python3` meist schon da. Unter Windows installieren Sie Python von python.org. Dort heißt das Programm danach in der Regel `python` oder `py`, nicht `python3`; das reicht, es muss nichts umbenannt werden. Der Platzhalter `python3` aus dem Microsoft Store zählt nicht, er verweist nur auf den Store, und die Hooks überspringen ihn. Ob es klappt, zeigt `python --version` oder `py -3 --version` in Git Bash. Ohne Python 3 setzen die beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt die Einrichtung (`einrichten.sh` oder `einrichten.ps1`) die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne Python.
+1. **Ordner holen.** Entpacken Sie das Startpaket mit Doppelklick und geben Sie dem Ordner einen Namen für Ihr Vorhaben, zum Beispiel `abfuhr-erinnerung`. Legen Sie ihn nicht in einen OneDrive- oder Dropbox-Ordner. Die neueste Fassung gibt es immer hier: [https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate](https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate) (grüner Knopf „Code“, dann „Download ZIP“, oder direkt [https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate/archive/refs/heads/main.zip](https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate/archive/refs/heads/main.zip)).
+2. **Ordner öffnen.** Wählen Sie den Ordner in der Desktop-App aus und bestätigen Sie, dass Sie ihm vertrauen. Bietet Claude die Skills `mattpocock-skills` an, bestätigen Sie.
+3. **Einrichten lassen.** Kopieren Sie diesen Auftrag in das Eingabefeld:
 
-1. **Entpacken.** Entpacken Sie `startpaket-claude-code.zip` und geben Sie dem Ordner einen Namen für Ihr Vorhaben, zum Beispiel `abfuhr-erinnerung`. Legen Sie ihn am besten nicht in einen OneDrive- oder Dropbox-Ordner, weil die Synchronisierung beim Arbeiten stört.
-2. **Terminal im Ordner öffnen.** macOS: Rechtsklick auf den Ordner, dann „Dienste“ und „Neues Terminal beim Ordner“. Windows: im Ordner Rechtsklick, dann „In Terminal öffnen“.
-3. **Einrichten.** Das Skript legt `.env.local` für Ihre Schlüssel an, beginnt eine eigene Git-Geschichte und prüft die Hooks (unter Windows über Git Bash, sofern es an den üblichen Orten liegt; sonst sagt das Skript, dass es die Tests übersprungen hat). Es ändert nichts außerhalb des Ordners.
-   ```bash
-   bash einrichten.sh                                          # macOS und Linux
-   powershell -ExecutionPolicy Bypass -File .\einrichten.ps1   # Windows
-   ```
-4. **Claude Code starten.** Tippen Sie `claude` (oder `codex`). In der Desktop-App wählen Sie stattdessen den Ordner aus. Bestätigen Sie, dass Sie dem Ordner vertrauen; erst dann laufen die Hooks.
-5. **Skills von Matt Pocock installieren.** Claude Code bietet beim ersten Start an, die Skill-Sammlung `mattpocock-skills` zu installieren. Bestätigen Sie das. Kommt keine Frage, geben Sie ein: `/plugin marketplace add mattpocock/skills#4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` und danach `/plugin install mattpocock-skills@mattpocock`. Das braucht Claude Code ab Version 2.1.324 (`claude --version`); warum und was bei einer älteren Version passiert, steht im Abschnitt „Skills von Matt Pocock“. Die Desktop-App aktualisiert sich selbst und hat keinen Befehl `claude --version`; dort müssen Sie nichts prüfen.
-6. **Prüfen.** Geben Sie `/hooks` ein. Dort sollten die fünf Hooks aus dem Abschnitt „Die Hooks“ stehen. Ob sie auf Ihrem Rechner auch laufen, zeigt `bash selbsttest.sh` im Terminal (unter Windows in Git Bash).
-7. **Regeldatei ausfüllen lassen.** Schreiben Sie: „Frag mich mit dem Skill grilling zu meinem Vorhaben aus und füll danach CLAUDE.md aus. Bleib unter 60 Zeilen.“
+   > Richte dieses Startpaket für mich ein. Lies zuerst die README. Prüf, ob Git und Python 3 auf meinem Rechner vorhanden sind. Fehlt etwas, erklär mir in einfachen Worten, was du installieren willst, und frag mich vorher. Führ dann das Einrichtungsskript aus und danach den Selbsttest. Sag mir am Ende in drei Sätzen, was eingerichtet ist und was noch offen ist. Ich programmiere nicht selbst.
+
+   Lesen Sie mit und erlauben Sie, was zum Auftrag passt. Fertig ist es, wenn der Selbsttest mit „Ergebnis: alles in Ordnung.“ endet.
+4. **Regeldatei ausfüllen lassen.** Schreiben Sie: „Frag mich mit dem Skill grilling zu meinem Vorhaben aus und füll danach CLAUDE.md aus. Bleib unter 60 Zeilen.“
 
 Danach geht es mit den Übungen in `uebungen/index.md` weiter.
 
 **Ohne Abo:** Laden Sie `CLAUDE.md` und die Dateien aus `uebungen/` in einen KI-Chat hoch und stellen Sie dieselben Fragen. Hooks und Skills gibt es dort nicht, die Übungen funktionieren trotzdem.
+
+## Ihr Skill my-boilerplate
+
+Damit jedes neue Vorhaben mit einem Satz startklar ist, lassen Sie Claude aus der Einrichtung einen eigenen Skill machen. Er holt das Startpaket jedes Mal frisch von GitHub. So bekommen Sie automatisch die neueste Fassung, auch wenn Sie früher eine ältere heruntergeladen haben.
+
+> Mach aus dem, was wir gerade getan haben, einen Skill mit dem Namen my-boilerplate. Er soll das Startpaket jedes Mal frisch von https://github.com/OM-Berlin/OM-Claude-Code-Boilerplate holen (ohne den Ordner .git), in einen neuen, leeren Ordner legen, einrichten und den Selbsttest laufen lassen. Leg ihn so ab, dass er in allen meinen Projekten verfügbar ist. Frag mich, wenn dir etwas fehlt.
+
+Danach genügt in einem neuen, leeren Ordner: „Richte hier mein Startpaket ein.“
 
 ## Windows
 
@@ -130,7 +133,7 @@ Am Ende einer Sitzung sagen Sie „Mach einen Handoff“. Der Skill `session-han
 
 Aus der Sammlung `mattpocock-skills` nutzt das Paket `grilling`, `diagnosing-bugs`, `tdd` und `code-review`. In `.claude/settings.json` ist die Sammlung mit `ref` auf einen festen Stand gelegt: den Commit `4ae2317`, Version 1.3.2. So ändern sich die Skills während des Lehrgangs nicht von selbst. Claude Code kann einen solchen Commit-Stand erst ab Version 2.1.324 lesen.
 
-**Wenn die Skills fehlen:** Bei einer älteren Version bietet Claude Code die Sammlung nicht an. Sie merken es daran, dass der Skill `grilling` fehlt: Er erscheint nicht in der Liste, die nach der Eingabe von `/` aufgeht, und Schritt 7 aus „In 10 Minuten startklar“ läuft ins Leere. Geben Sie dann im Terminal `claude update` ein, starten Sie Claude Code neu und wiederholen Sie Schritt 5. `einrichten.sh` und `einrichten.ps1` warnen vor einer zu alten Version, wenn sie `claude --version` lesen können. In der Desktop-App gibt es diesen Befehl nicht; sie aktualisiert sich selbst. Starten Sie die App neu und wiederholen Sie Schritt 5.
+**Wenn die Skills fehlen:** Bei einer älteren Version bietet Claude Code die Sammlung nicht an. Sie merken es daran, dass der Skill `grilling` fehlt: Er erscheint nicht in der Liste, die nach der Eingabe von `/` aufgeht, und Schritt 4 aus „Startklar, ohne Befehle zu tippen“ läuft ins Leere. Geben Sie dann im Terminal `claude update` ein, starten Sie Claude Code neu und bestätigen Sie die Installation der Skills erneut (Schritt 5 im Abschnitt „Hintergrund: die Einrichtung von Hand“). `einrichten.sh` und `einrichten.ps1` warnen vor einer zu alten Version, wenn sie `claude --version` lesen können. In der Desktop-App gibt es diesen Befehl nicht; sie aktualisiert sich selbst. Starten Sie die App neu; sie bietet die Skills dann erneut an.
 
 Die Festlegung greift nur, wenn Claude Code die Sammlung zum ersten Mal einträgt. Wer sie schon früher ohne Festlegung eingetragen hat, behält seinen Stand. Auf einen neueren Stand wechseln Sie so: Suchen Sie auf github.com/mattpocock/skills den Commit der gewünschten Version, tragen Sie seine volle Kennung (40 Zeichen) in `.claude/settings.json` bei `ref` ein, geben Sie in Claude Code `/plugin marketplace remove mattpocock` ein und starten Sie Claude Code neu. Dann bietet es die Installation wieder an.
 
@@ -178,7 +181,32 @@ Die erste Fassung dieses Pakets gab es zum Workshop im September 2026. Für den 
 - **Sicherer Standard:** Der Modus ohne Rückfragen ist gesperrt, und `einrichten.sh` prüft die Hooks mit ihren Tests.
 - **Vier Programme:** Codex, Antigravity und Pi lesen dieselben Regeln und denselben Handoff-Skill; die Übergabe-Liste und die Sperre gefährlicher Befehle laufen auch dort (Tabelle oben).
 - **Feste Skill-Version:** Die Skills von Matt Pocock sind auf Version 1.3.2 festgelegt.
+- **Einrichten per Auftrag:** Vorn steht ein Auftrag an Claude statt Terminal-Befehlen; die Befehle stehen zum Nachlesen im Abschnitt „Hintergrund“. Der Skill `my-boilerplate` holt die neueste Fassung direkt von GitHub.
 - **Windows:** Eigener Abschnitt mit Einrichtung und den häufigsten Problemen, neuer Selbsttest `selbsttest.sh`, feste LF-Zeilenenden über `.gitattributes`, Sperre auch für das PowerShell-Werkzeug von Claude Code.
+
+## Hintergrund: die Einrichtung von Hand
+
+Das alles erledigt Claude für Sie, wenn Sie den Auftrag oben geben. Hier steht zum Nachlesen, was dabei passiert und welche Befehle es sind.
+
+**Sie brauchen:** Claude Code (im Terminal oder in der Desktop-App im Bereich „Code“) oder eines der anderen Programme aus der Tabelle unten, jeweils angemeldet, und Git. Unter Windows installieren Sie dafür „Git für Windows“; es bringt Git Bash mit, das die Hooks brauchen. Was unter Windows sonst zu beachten ist, steht im Abschnitt „Windows“.
+
+**Zusätzlich Python 3:** Zwei der Handoff-Hooks (der Prompt-Wächter und die Schreibsperre) und die Hook-Tests brauchen Python 3. Die Hooks suchen es unter den Namen `python3`, `python` und `py -3` und nehmen den ersten, der wirklich läuft und sich als Python 3 meldet. Unter macOS und Linux ist `python3` meist schon da. Unter Windows installieren Sie Python von python.org. Dort heißt das Programm danach in der Regel `python` oder `py`, nicht `python3`; das reicht, es muss nichts umbenannt werden. Der Platzhalter `python3` aus dem Microsoft Store zählt nicht, er verweist nur auf den Store, und die Hooks überspringen ihn. Ob es klappt, zeigt `python --version` oder `py -3 --version` in Git Bash. Ohne Python 3 setzen die beiden Hooks still aus: Ein geladener Handoff wird dann nicht als bloßer Kontext behandelt, und die Schreibsperre nach dem Laden fehlt. Außerdem überspringt die Einrichtung (`einrichten.sh` oder `einrichten.ps1`) die Hook-Tests. Der Hook gegen gefährliche Befehle, der Formatierer und die Liste offener Handoffs laufen auch ohne Python.
+
+1. **Entpacken.** Entpacken Sie `startpaket-claude-code.zip` und geben Sie dem Ordner einen Namen für Ihr Vorhaben, zum Beispiel `abfuhr-erinnerung`. Legen Sie ihn am besten nicht in einen OneDrive- oder Dropbox-Ordner, weil die Synchronisierung beim Arbeiten stört.
+2. **Terminal im Ordner öffnen.** macOS: Rechtsklick auf den Ordner, dann „Dienste“ und „Neues Terminal beim Ordner“. Windows: im Ordner Rechtsklick, dann „In Terminal öffnen“.
+3. **Einrichten.** Das Skript legt `.env.local` für Ihre Schlüssel an, beginnt eine eigene Git-Geschichte und prüft die Hooks (unter Windows über Git Bash, sofern es an den üblichen Orten liegt; sonst sagt das Skript, dass es die Tests übersprungen hat). Es ändert nichts außerhalb des Ordners.
+   ```bash
+   bash einrichten.sh                                          # macOS und Linux
+   powershell -ExecutionPolicy Bypass -File .\einrichten.ps1   # Windows
+   ```
+4. **Claude Code starten.** Tippen Sie `claude` (oder `codex`). In der Desktop-App wählen Sie stattdessen den Ordner aus. Bestätigen Sie, dass Sie dem Ordner vertrauen; erst dann laufen die Hooks.
+5. **Skills von Matt Pocock installieren.** Claude Code bietet beim ersten Start an, die Skill-Sammlung `mattpocock-skills` zu installieren. Bestätigen Sie das. Kommt keine Frage, geben Sie ein: `/plugin marketplace add mattpocock/skills#4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` und danach `/plugin install mattpocock-skills@mattpocock`. Das braucht Claude Code ab Version 2.1.324 (`claude --version`); warum und was bei einer älteren Version passiert, steht im Abschnitt „Skills von Matt Pocock“. Die Desktop-App aktualisiert sich selbst und hat keinen Befehl `claude --version`; dort müssen Sie nichts prüfen.
+6. **Prüfen.** Geben Sie `/hooks` ein. Dort sollten die fünf Hooks aus dem Abschnitt „Die Hooks“ stehen. Ob sie auf Ihrem Rechner auch laufen, zeigt `bash selbsttest.sh` im Terminal (unter Windows in Git Bash).
+7. **Regeldatei ausfüllen lassen.** Schreiben Sie: „Frag mich mit dem Skill grilling zu meinem Vorhaben aus und füll danach CLAUDE.md aus. Bleib unter 60 Zeilen.“
+
+Danach geht es mit den Übungen in `uebungen/index.md` weiter.
+
+**Ohne Abo:** Laden Sie `CLAUDE.md` und die Dateien aus `uebungen/` in einen KI-Chat hoch und stellen Sie dieselben Fragen. Hooks und Skills gibt es dort nicht, die Übungen funktionieren trotzdem.
 
 ## Woher das kommt
 
