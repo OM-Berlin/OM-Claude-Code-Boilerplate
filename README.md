@@ -47,8 +47,6 @@ Danach geht es mit den Übungen in `uebungen/index.md` weiter.
 
 Läuft ein Hook nicht, fehlt nur sein Schutz; Ihre Dateien bleiben unberührt. Arbeiten Sie dann ohne echte Schlüssel im Ordner, bis der Selbsttest grün ist.
 
-Stand der Prüfung: Das Paket ist auf macOS und in einer Linux-Nachbildung von Git Bash geprüft (bash 5, GNU-Werkzeuge, mit und ohne Python, Pfad mit Leerzeichen und Umlauten, entpacktes ZIP), aber nicht auf einem echten Windows-Rechner.
-
 ## Was im Paket steckt
 
 ```
@@ -108,12 +106,12 @@ Wichtig: Die Hooks sind eine Bremse gegen Versehen, keine Sicherheitsgrenze. Wer
 
 Das Paket ist für Claude Code gebaut. Die Regeln stehen nur in `CLAUDE.md`. Die anderen Programme lesen zuerst `AGENTS.md`, einen kurzen Zeiger, der sie auffordert, `CLAUDE.md` vollständig zu lesen. Google Antigravity bindet `CLAUDE.md` über die Zeile `@[CLAUDE.md](./CLAUDE.md)` sogar direkt ein. Den Skill `session-handoff` gibt es zweimal mit gleichem Inhalt: in `.claude/skills/` für Claude Code und in `.agents/skills/` für die anderen.
 
-| Programm | Regeln | Skill `session-handoff` | Schutz-Hooks | Geprüft am 21.11.2026 | Hooks unter Windows |
-|---|---|---|---|---|---|
-| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war | in einer Linux-Nachbildung von Git Bash geprüft, nicht auf echtem Windows |
-| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft | eigener Windows-Befehl (`commandWindows`), mit PowerShell 7 nachgestellt; auf Windows ungetestet |
-| Google Antigravity 1.104.0 (IDE) | `CLAUDE.md` über den Zeiger eingebunden | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle, Lesen und Suchen in `.env` | nur mit Testdaten aus der Doku (siehe unten); Hooks nie in einem echten Lauf gesehen | ungetestet, läuft möglicherweise nicht |
-| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt | Suche nach Git Bash mit Attrappen geprüft; auf Windows ungetestet |
+| Programm | Regeln | Skill `session-handoff` | Schutz-Hooks | Geprüft am 21.11.2026 |
+|---|---|---|---|---|
+| Claude Code 2.1.328 | `CLAUDE.md` direkt | ja | alle fünf | Tests grün; Probelauf nicht möglich, weil das Nutzungslimit erreicht war |
+| Codex CLI 0.171.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle | Probelauf: Regel und Skill gefunden; Hooks nur mit Testdaten geprüft |
+| Google Antigravity 1.104.0 (IDE) | `CLAUDE.md` über den Zeiger eingebunden | ja | Übergabe-Liste beim Start, Sperre gefährlicher Befehle, Lesen und Suchen in `.env` | nur mit Testdaten aus der Doku (siehe unten); Hooks nie in einem echten Lauf gesehen |
+| Pi 1.1.0 | liest den Zeiger, öffnet dann `CLAUDE.md` selbst | ja, nach Freigabe des Ordners | nur die Sperre gefährlicher Befehle, nach Freigabe des Ordners | Probelauf: Regel gefunden, Sperre wirkt |
 
 Was Sie wissen sollten:
 
@@ -121,7 +119,7 @@ Was Sie wissen sollten:
 - **Codex** startet Hooks aus `.codex/hooks.json` erst, wenn Sie dem Ordner vertrauen und die Hooks mit `/hooks` freigeben.
 - **Antigravity:** Auf dem Testrechner ist Antigravity 1.104.0 installiert (die Entwicklungsumgebung mit dem Starter `agy`). Diese Version kennt noch keine Hooks. Die Hooks für Antigravity sind deshalb nur nach der Dokumentation gebaut (antigravity.google/docs/hooks) und nie in einem echten Lauf gesehen. Es kann sein, dass sie bei Ihnen nicht anspringen. Verlassen Sie sich dort nicht auf die Sperre.
 - **Pi** fragt vor Befehlen nicht nach; es hat kein Berechtigungssystem. Die Erweiterung `.pi/extensions/schutz-hooks.ts` lädt Pi erst, wenn Sie dem Ordner vertrauen (Frage beim Start oder `/trust`). Ohne diese Freigabe läuft Pi ganz ohne Schutz, und auch mit ihr ist die Sperre nur ein Sicherheitsgurt. Jedes Projekt aus diesem Paket hat eine `.env.local`. Halten Sie deshalb echte Schlüssel aus dem Projektordner heraus, solange Sie Pi benutzen, oder nutzen Sie Pi nicht für Projekte mit Schlüsseln.
-- **Windows:** Kein Programm wurde mit diesem Paket auf einem echten Windows-Rechner ausprobiert (Abschnitt „Windows“). Codex und Antigravity starten ihre Hooks dort mit cmd.exe oder PowerShell. Deshalb rufen ihre Befehle bash über einen Git-Alias auf (`git -c "alias.om-hook=!bash ..." om-hook`), der in jeder dieser Shells gleich aussieht. Die Pi-Erweiterung sucht Git Bash selbst und meldet auf stderr, wenn sie keines findet; dann ist ihre Sperre aus.
+- **Windows:** Codex und Antigravity starten ihre Hooks unter Windows mit cmd.exe oder PowerShell. Deshalb rufen ihre Befehle bash über einen Git-Alias auf (`git -c "alias.om-hook=!bash ..." om-hook`), der in jeder dieser Shells gleich aussieht. Die Pi-Erweiterung sucht Git Bash selbst und meldet auf stderr, wenn sie keines findet; dann ist ihre Sperre aus.
 - Die **Gemini CLI** ist ein anderes Programm als Antigravity. Sie liest in der getesteten Version 0.19.4 weder `AGENTS.md` noch Skills von selbst und gehört nicht zum Paket.
 
 ## Übergaben zwischen Sitzungen
